@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learnify - Modern Learning Management System</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        indigo: {
+                            50: '#EEF2FF',
+                            100: '#E0E7FF',
+                            200: '#C7D2FE',
+                            300: '#A5B4FC',
+                            400: '#818CF8',
+                            500: '#6366F1',
+                            600: '#4F46E5', // Primary
+                            700: '#4338CA',
+                            800: '#3730A3',
+                            900: '#312E81',
+                        },
+                        slate: {
+                            50: '#F8FAFC', // Background
+                            100: '#F1F5F9',
+                            200: '#E2E8F0', // Border
+                            300: '#CBD5E1',
+                            400: '#94A3B8',
+                            500: '#64748B',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1E293B',
+                            900: '#0F172A', // Primary Text
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Alpine.js CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        /* Custom scrollbar styling for modern sleek design */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-900 font-sans antialiased bg-slate-50 selection:bg-indigo-500 selection:text-white" x-data="lmsApp()" x-init="initApp()">
+
+    <div class="min-h-full flex flex-col md:flex-row">
+        
+        <!-- MOBILE HEADER & DRAWER TOGGLE -->
+        <div class="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">L</div>
+                <span class="font-bold text-lg text-slate-900 tracking-tight">Learnify</span>
+            </div>
+            <button @click="mobileSidebarOpen = !mobileSidebarOpen" class="p-2 rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- SIDEBAR CONTAINER -->
+        <aside 
+            :class="mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'" 
+            class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-200 ease-in-out md:static md:z-auto">
+            
+            <!-- Logo Section -->
+            <div class="h-16 flex items-center justify-between px-6 border-b border-slate-100">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-200">
+                        L
+                    </div>
+                    <div>
+                        <span class="font-bold text-lg text-slate-900 tracking-tight block leading-none">Learnify</span>
+                        <span class="text-[10px] text-slate-400 font-medium tracking-wider uppercase" x-text="role === 'student' ? 'Student Portal' : 'Instructor Hub'"></span>
+                    </div>
+                </div>
+                <button @click="mobileSidebarOpen = false" class="md:hidden text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Role Switcher Banner in Sidebar -->
+            <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                <div class="text-xs text-slate-500 mb-2 font-medium">Active Mode:</div>
+                <div class="bg-slate-200/70 p-1 rounded-xl flex items-center">
+                    <button 
+                        @click="switchRole('student')" 
+                        :class="role === 'student' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'"
+                        class="flex-1 py-1.5 px-3 rounded-lg text-xs transition-all text-center">
+                        Student
+                    </button>
+                    <button 
+                        @click="switchRole('instructor')" 
+                        :class="role === 'instructor' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-600 hover:text-slate-900'"
+                        class="flex-1 py-1.5 px-3 rounded-lg text-xs transition-all text-center">
+                        Instructor
+                    </button>
+                </div>
+            </div>
+
+            <!-- STUDENT NAVIGATION -->
+            <nav x-show="role === 'student'" class="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+                <a href="#" @click.prevent="activeTab = 'student-dashboard'; mobileSidebarOpen = false" 
+                   :class="activeTab === 'student-dashboard' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                   class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" @click.prevent="activeTab = 'explore'; mobileSidebarOpen = false" 
+                   :class="activeTab === 'explore' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                   class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+                    <i data-lucide="compass" class="w-5 h-5"></i>
+                    <span>Explore Courses</span>
+                </a>
+                <a href="#" @click.prevent="activeTab = 'my-learning'; mobileSidebarOpen = false" 
+                   :class="activeTab === 'my-learning' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                   class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+                    <i data-lucide="book-open" class="w-5 h-5"></i>
+                    <span>My Learning</span>
+                </a>
+                <a href="#" @click.prevent="activeTab = 'quiz-results'; mobileSidebarOpen = false" 
+                   :class="activeTab === 'quiz-results' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                   class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+                    <i data-lucide="award" class="w-5 h-5"></i>
+                    <span>Quiz Results</span>
+                </a>
+                <a href="#" @click.prevent="activeTab = 'profile'; mobileSidebarOpen = false" 
+                   :class="activeTab === 'profile' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                   class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                    <span>Profile</span>
+                </a>
+            </nav>
+
+            <!-- INSTRUCTOR NAVIGATION -->
+            <nav x-show="role === 'instructor'" class="flex-1 px-4 py-4 space-y-1 overflow-y-auto" x-cloak>
+                <a href="#" @click.prevent="activeTab = 'instructor-dashboard'; mobileSidebarOpen = false" 
+                   :class="activeTab === 'instructor-dashboard' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                   class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+                    <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" @click.prevent="activeTab = 'course-mgmt'; mobileSidebarOpen = false" 
+                   :class="activeTab === 'course-mgmt' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                   class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+                    <span>Courses</span>
+                </a>
+                <a href="#" @click.prevent="activeTab = 'students'; mobileSidebarOpen = false" 
+                   :class="activeTab === 'students' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                   class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Students</span>
+                </a>
+                <a href="#" @click.prevent="activeTab = 'analytics'; mobileSidebarOpen = false" 
+                   :class="activeTab === 'analytics' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                   class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+                    <i data-lucide="trending-up" class="w-5 h-5"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#" @click.prevent="activeTab = 'profile'; mobileSidebarOpen = false" 
+                   :class="activeTab === 'profile' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                   class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                    <span>Profile</span>
+                </a>
+            </nav>
+
+            <!-- User Footer Profile Info -->
+            <div class="p-4 border-t border-slate-200 bg-white">
+                <div class="flex items-center space-x-3">
+                    <img :src="user.avatar" class="w-9 h-9 rounded-full object-cover border border-slate-200" alt="Avatar">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-slate-900 truncate" x-text="user.name"></p>
+                        <p class="text-xs text-slate-500 truncate" x-text="user.email"></p>
+                    </div>
+                    <button @click="showToast('Logged out successfully', 'info')" class="text-slate-400 hover:text-rose-600 p-1 rounded transition-colors" title="Logout">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-y-auto h-screen bg-slate-50">
+            
+            <!-- TOPBAR HEADER -->
+            <header class="bg-white border-b border-slate-200 h-16 px-6 flex items-center justify-between sticky top-0 z-20">
+                <!-- Search or Title dynamic context -->
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-xl font-bold text-slate-900 capitalize tracking-tight" x-text="getPageTitle()"></h1>
+                </div>
+
+                <!-- Top Right Controls -->
+                <div class="flex items-center space-x-3">
+                    <!-- Global Search -->
+                    <div class="relative hidden sm:block w-64">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" x-model="searchQuery" placeholder="Search anything..." class="w-full pl-9 pr-4 py-1.5 bg-slate-100/70 border border-transparent rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 transition-all">
+                    </div>
+
+                    <!-- Notification Bell -->
+                    <button class="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-600 rounded-full"></span>
+                    </button>
+
+                    <!-- Quick Mode Badge -->
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 capitalize">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-600 mr-1.5"></span>
+                        <span x-text="role"></span> Mode
+                    </span>
+                </div>
+            </header>
+
+            <!-- MAIN VIEW CONTAINER -->
+            <div class="p-6 max-w-7xl w-full mx-auto space-y-6">
+
+                
+                <!-- ========================================== -->
+                <!-- 1. STUDENT DASHBOARD                       -->
+                <!-- ========================================== -->
+                <div x-show="role === 'student' && activeTab === 'student-dashboard'" class="space-y-6" x-cloak>
+                    <!-- Welcome Banner -->
+                    <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold">Welcome back, <span x-text="user.name"></span>! 👋</h2>
+                            <p class="text-indigo-100 text-sm mt-1">You've completed 75% of your goal this week. Keep going!</p>
+                        </div>
+                        <button @click="activeTab = 'explore'" class="px-4 py-2.5 bg-white text-indigo-700 hover:bg-indigo-50 font-semibold rounded-xl text-sm transition-all shadow-sm">
+                            Browse New Courses
+                        </button>
+                    </div>
+
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                            <div class="p-3 bg-indigo-50 rounded-xl text-indigo-600">
+                                <i data-lucide="book-open" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500">Enrolled Courses</p>
+                                <p class="text-2xl font-bold text-slate-900 mt-0.5" x-text="studentKpis.enrolled"></p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                            <div class="p-3 bg-emerald-50 rounded-xl text-emerald-600">
+                                <i data-lucide="check-circle" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500">Completed Courses</p>
+                                <p class="text-2xl font-bold text-slate-900 mt-0.5" x-text="studentKpis.completed"></p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                            <div class="p-3 bg-amber-50 rounded-xl text-amber-600">
+                                <i data-lucide="play-circle" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500">Lessons Completed</p>
+                                <p class="text-2xl font-bold text-slate-900 mt-0.5" x-text="studentKpis.lessonsDone"></p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                            <div class="p-3 bg-purple-50 rounded-xl text-purple-600">
+                                <i data-lucide="award" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500">Average Quiz Score</p>
+                                <p class="text-2xl font-bold text-slate-900 mt-0.5" x-text="studentKpis.avgScore + '%'"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Continue Learning & Recent Activity Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Continue Learning Card -->
+                        <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-slate-900 text-base">Continue Learning</h3>
+                                <a href="#" @click.prevent="activeTab = 'my-learning'" class="text-xs text-indigo-600 hover:text-indigo-700 font-semibold">View All</a>
+                            </div>
+
+                            <template x-for="course in getEnrolledCourses().slice(0, 2)" :key="course.id">
+                                <div class="p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-100/50 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                    <img :src="course.thumbnail" class="w-full sm:w-24 h-16 object-cover rounded-lg" alt="Thumbnail">
+                                    <div class="flex-1 w-full">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <h4 class="font-semibold text-sm text-slate-900" x-text="course.title"></h4>
+                                            <span class="text-xs font-bold text-indigo-600" x-text="course.progress + '%'"></span>
+                                        </div>
+                                        <div class="w-full bg-slate-200 rounded-full h-2 mb-2">
+                                            <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300" :style="'width: ' + course.progress + '%'"></div>
+                                        </div>
+                                        <p class="text-xs text-slate-500" x-text="'Instructor: ' + course.instructor"></p>
+                                    </div>
+                                    <button @click="openLessonPlayer(course)" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium transition-colors whitespace-nowrap w-full sm:w-auto text-center">
+                                        Continue
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Learning Activity Chart Card -->
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base mb-2">Weekly Activity</h3>
+                                <p class="text-xs text-slate-500 mb-4">Hours spent learning this week</p>
+                            </div>
+                            <div class="h-48 relative">
+                                <canvas id="studentActivityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Quiz Results Summary -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                            <h3 class="font-bold text-slate-900 text-base">Recent Quiz Performance</h3>
+                            <button @click="activeTab = 'quiz-results'" class="text-xs text-indigo-600 font-semibold hover:underline">See Detailed History</button>
+                        </div>
+                        <div class="divide-y divide-slate-100">
+                            <template x-for="q in quizResults" :key="q.id">
+                                <div class="p-4 px-6 flex items-center justify-between hover:bg-slate-50/50">
+                                    <div class="flex items-center space-x-3">
+                                        <div :class="q.passed ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'" class="p-2 rounded-lg">
+                                            <i :data-lucide="q.passed ? 'check' : 'x'" class="w-4 h-4"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-900" x-text="q.quizTitle"></p>
+                                            <p class="text-xs text-slate-500" x-text="q.courseTitle + ' • ' + q.date"></p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-sm font-bold text-slate-900" x-text="q.score + '%'"></span>
+                                        <p class="text-xs" :class="q.passed ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'" x-text="q.passed ? 'PASSED' : 'FAILED'"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- 2. EXPLORE COURSES                         -->
+                <!-- ========================================== -->
+                <div x-show="role === 'student' && activeTab === 'explore'" class="space-y-6" x-cloak>
+                    <!-- Filters & Search Bar -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="relative w-full md:w-96">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" x-model="exploreSearch" placeholder="Search by title or instructor..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="flex items-center space-x-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                            <!-- Category Filter -->
+                            <select x-model="selectedCategory" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-indigo-500">
+                                <option value="All">All Categories</option>
+                                <option value="Web Dev">Web Development</option>
+                                <option value="Backend">Backend</option>
+                                <option value="Data Science">Data Science</option>
+                                <option value="Design">Design</option>
+                            </select>
+
+                            <!-- Level Filter -->
+                            <select x-model="selectedLevel" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:outline-none focus:border-indigo-500">
+                                <option value="All">All Levels</option>
+                                <option value="Beginner">Beginner</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Course Grid Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <template x-for="course in filteredExploreCourses" :key="course.id">
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+                                <div class="relative">
+                                    <img :src="course.thumbnail" class="w-full h-44 object-cover" alt="Course thumbnail">
+                                    <span class="absolute top-3 right-3 px-2.5 py-1 bg-white/90 backdrop-blur-sm rounded-md text-[11px] font-semibold text-slate-800 shadow-xs" x-text="course.level"></span>
+                                </div>
+                                <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+                                    <div>
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider" x-text="course.category"></span>
+                                            <div class="flex items-center space-x-1 text-amber-500 text-xs font-semibold">
+                                                <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                                                <span x-text="course.rating"></span>
+                                            </div>
+                                        </div>
+                                        <h3 class="font-bold text-slate-900 text-base leading-snug hover:text-indigo-600 cursor-pointer" @click="openCourseDetail(course)" x-text="course.title"></h3>
+                                        <p class="text-xs text-slate-500 mt-2 line-clamp-2" x-text="course.description"></p>
+                                    </div>
+
+                                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                                        <div class="flex items-center space-x-2">
+                                            <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                                            <span x-text="course.instructor"></span>
+                                        </div>
+                                        <div class="flex items-center space-x-1">
+                                            <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                                            <span x-text="course.lessonsCount + ' Lessons'"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="pt-2">
+                                        <button 
+                                            @click="toggleEnrollment(course)" 
+                                            :class="course.isEnrolled ? 'bg-slate-100 text-slate-800 hover:bg-slate-200' : 'bg-indigo-600 text-white hover:bg-indigo-700'"
+                                            class="w-full py-2.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center space-x-2">
+                                            <span x-text="course.isEnrolled ? 'Continue Course' : 'Enroll Now'"></span>
+                                            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- 3. MY LEARNING                             -->
+                <!-- ========================================== -->
+                <div x-show="role === 'student' && activeTab === 'my-learning'" class="space-y-6" x-cloak>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <template x-for="course in getEnrolledCourses()" :key="course.id">
+                            <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between space-y-4">
+                                <div class="flex space-x-4">
+                                    <img :src="course.thumbnail" class="w-24 h-24 object-cover rounded-lg flex-shrink-0" alt="Thumbnail">
+                                    <div class="flex-1 min-w-0">
+                                        <span class="text-[10px] uppercase tracking-wider font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded" x-text="course.category"></span>
+                                        <h3 class="font-bold text-slate-900 text-base mt-1 truncate" x-text="course.title"></h3>
+                                        <p class="text-xs text-slate-500 mt-0.5" x-text="'By ' + course.instructor"></p>
+                                        <p class="text-xs text-slate-400 mt-2" x-text="course.completedLessons + ' of ' + course.lessonsCount + ' lessons completed'"></p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between items-center text-xs text-slate-600 font-semibold mb-1.5">
+                                        <span>Progress</span>
+                                        <span x-text="course.progress + '%'"></span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2">
+                                        <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300" :style="'width: ' + course.progress + '%'"></div>
+                                    </div>
+                                </div>
+
+                                <button @click="openLessonPlayer(course)" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors text-center">
+                                    Continue Learning
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+
+                <!-- ========================================== -->
+                <!-- 4. LESSON PLAYER VIEW (SPA SIMULATION)     -->
+                <!-- ========================================== -->
+                <div x-show="role === 'student' && activeTab === 'lesson-player'" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" x-cloak>
+                    <!-- Player Header bar -->
+                    <div class="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                        <div class="flex items-center space-x-3">
+                            <button @click="activeTab = 'my-learning'" class="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white">
+                                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                            </button>
+                            <div>
+                                <h2 class="font-bold text-sm text-white" x-text="currentActiveCourse?.title"></h2>
+                                <p class="text-xs text-slate-400" x-text="'Current Lesson: ' + activeLesson?.title"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-xs text-slate-400 font-medium hidden sm:inline" x-text="currentActiveCourse?.progress + '% Completed'"></span>
+                            <button @click="toggleMarkComplete()" :class="activeLesson?.completed ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                                <span x-text="activeLesson?.completed ? '✓ Completed' : 'Mark as Complete'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Content Layout Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3">
+                        <!-- Main Video / Lesson View -->
+                        <div class="lg:col-span-2 p-6 border-b lg:border-b-0 lg:border-r border-slate-200 space-y-6">
+                            <!-- Mock Video Container -->
+                            <div class="aspect-video bg-slate-900 rounded-xl overflow-hidden relative flex items-center justify-center group border border-slate-800 shadow-inner">
+                                <div class="text-center p-6 space-y-3">
+                                    <div class="w-16 h-16 rounded-full bg-indigo-600/90 text-white flex items-center justify-center mx-auto shadow-lg group-hover:scale-105 transition-transform cursor-pointer" @click="showToast('Playing lecture video stream...', 'info')">
+                                        <i data-lucide="play" class="w-8 h-8 ml-1"></i>
+                                    </div>
+                                    <p class="text-xs text-slate-400">Interactive HD Video Lecture Player</p>
+                                </div>
+                                <div class="absolute bottom-3 left-3 right-3 bg-slate-900/80 backdrop-blur-sm p-2 rounded-lg text-xs text-slate-300 flex justify-between items-center">
+                                    <span>1080p | 60fps</span>
+                                    <span>Duration: 14:20</span>
+                                </div>
+                            </div>
+
+                            <!-- Lesson Metadata & Tabs -->
+                            <div class="space-y-4">
+                                <h2 class="text-xl font-bold text-slate-900" x-text="activeLesson?.title"></h2>
+                                <p class="text-sm text-slate-600 leading-relaxed" x-text="activeLesson?.description || 'In this lesson, we cover essential industry standard patterns, structural best practices, and practical code implementation examples.'"></p>
+
+                                <!-- Downloadable Resources -->
+                                <div class="pt-4 border-t border-slate-100">
+                                    <h4 class="font-bold text-xs uppercase tracking-wider text-slate-500 mb-3">Lesson Resources</h4>
+                                    <div class="flex flex-wrap gap-3">
+                                        <button @click="showToast('Downloading source code file...', 'success')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-medium text-slate-700 flex items-center space-x-2 transition-colors">
+                                            <i data-lucide="file-code" class="w-4 h-4 text-indigo-600"></i>
+                                            <span>source-code-exercise.zip</span>
+                                        </button>
+                                        <button @click="showToast('Opening PDF guide...', 'success')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-medium text-slate-700 flex items-center space-x-2 transition-colors">
+                                            <i data-lucide="file-text" class="w-4 h-4 text-emerald-600"></i>
+                                            <span>cheatsheet-guide.pdf</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Side Curriculum Navigation -->
+                        <div class="bg-slate-50 p-4 divide-y divide-slate-200/60 overflow-y-auto max-h-[600px]">
+                            <h3 class="font-bold text-xs uppercase tracking-wider text-slate-500 mb-3 px-2">Course Curriculum</h3>
+                            
+                            <template x-for="(module, mIdx) in currentActiveCourse?.modules" :key="mIdx">
+                                <div class="py-3" x-data="{ open: true }">
+                                    <button @click="open = !open" class="w-full flex items-center justify-between text-left text-xs font-bold text-slate-800 py-1 px-2 hover:bg-slate-100 rounded-md">
+                                        <span x-text="module.title"></span>
+                                        <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                                    </button>
+
+                                    <div x-show="open" class="mt-2 space-y-1 pl-2">
+                                        <template x-for="lesson in module.lessons" :key="lesson.id">
+                                            <button 
+                                                @click="activeLesson = lesson" 
+                                                :class="activeLesson?.id === lesson.id ? 'bg-indigo-50 text-indigo-700 font-semibold border-l-2 border-indigo-600' : 'text-slate-600 hover:bg-slate-100'"
+                                                class="w-full text-left py-2 px-2.5 rounded-r-md text-xs flex items-center justify-between transition-colors">
+                                                <div class="flex items-center space-x-2 truncate">
+                                                    <i :data-lucide="lesson.completed ? 'check-circle' : 'play-circle'" :class="lesson.completed ? 'text-emerald-500' : 'text-slate-400'" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                                                    <span class="truncate" x-text="lesson.title"></span>
+                                                </div>
+                                                <span class="text-[10px] text-slate-400" x-text="lesson.duration"></span>
+                                            </button>
+                                        </template>
+
+                                        <!-- Module Quiz trigger if available -->
+                                        <template x-if="module.quiz">
+                                            <button 
+                                                @click="startQuiz(module.quiz)" 
+                                                class="w-full text-left py-2 px-2.5 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 hover:bg-amber-100 flex items-center space-x-2 mt-1 border border-amber-200/60">
+                                                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-amber-600"></i>
+                                                <span x-text="'Quiz: ' + module.quiz.title"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- 5. QUIZ INTERFACE                          -->
+                <!-- ========================================== -->
+                <div x-show="role === 'student' && activeTab === 'quiz-view'" class="max-w-3xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6" x-cloak>
+                    <!-- Quiz Title Header -->
+                    <div class="border-b border-slate-200 pb-4 flex justify-between items-center">
+                        <div>
+                            <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Module Assessment</span>
+                            <h2 class="text-xl font-bold text-slate-900 mt-0.5" x-text="activeQuiz?.title"></h2>
+                        </div>
+                        <span class="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md" x-text="'Question ' + (currentQuestionIdx + 1) + ' of ' + activeQuiz?.questions.length"></span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-indigo-600 h-1.5 transition-all duration-300" :style="'width: ' + (((currentQuestionIdx + 1) / activeQuiz?.questions.length) * 100) + '%'"></div>
+                    </div>
+
+                    <!-- Current Question -->
+                    <template x-if="activeQuiz && activeQuiz.questions[currentQuestionIdx]">
+                        <div class="space-y-4">
+                            <h3 class="font-semibold text-base text-slate-900" x-text="activeQuiz.questions[currentQuestionIdx].questionText"></h3>
+                            
+                            <div class="space-y-2.5">
+                                <template x-for="(opt, oIdx) in activeQuiz.questions[currentQuestionIdx].options" :key="oIdx">
+                                    <label 
+                                        :class="quizAnswers[currentQuestionIdx] === oIdx ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                                        class="flex items-center space-x-3 p-3.5 rounded-xl border cursor-pointer transition-all">
+                                        <input type="radio" :name="'q_' + currentQuestionIdx" :value="oIdx" x-model="quizAnswers[currentQuestionIdx]" class="text-indigo-600 focus:ring-indigo-500">
+                                        <span class="text-sm font-medium" x-text="opt"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Navigation Footer -->
+                    <div class="flex justify-between items-center pt-4 border-t border-slate-200">
+                        <button 
+                            @click="currentQuestionIdx--" 
+                            :disabled="currentQuestionIdx === 0"
+                            class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold disabled:opacity-50 hover:bg-slate-200 transition-colors">
+                            Previous
+                        </button>
+
+                        <button 
+                            x-show="currentQuestionIdx < activeQuiz?.questions.length - 1"
+                            @click="currentQuestionIdx++" 
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition-colors">
+                            Next Question
+                        </button>
+
+                        <button 
+                            x-show="currentQuestionIdx === activeQuiz?.questions.length - 1"
+                            @click="submitQuiz()" 
+                            class="px-5 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
+                            Submit Quiz
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- 6. QUIZ RESULTS SUMMARY                    -->
+                <!-- ========================================== -->
+                <div x-show="role === 'student' && activeTab === 'quiz-results'" class="space-y-6" x-cloak>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                        <h2 class="text-lg font-bold text-slate-900">Quiz History & Assessment Reports</h2>
+
+                        <div class="divide-y divide-slate-100">
+                            <template x-for="q in quizResults" :key="q.id">
+                                <div class="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div>
+                                        <span class="text-xs font-semibold text-slate-400" x-text="q.date"></span>
+                                        <h3 class="font-bold text-base text-slate-900" x-text="q.quizTitle"></h3>
+                                        <p class="text-xs text-slate-500" x-text="q.courseTitle"></p>
+                                    </div>
+                                    <div class="flex items-center space-x-6">
+                                        <div class="text-right">
+                                            <p class="text-xl font-bold" :class="q.passed ? 'text-emerald-600' : 'text-rose-600'" x-text="q.score + '%'"></p>
+                                            <p class="text-xs font-medium uppercase text-slate-400" x-text="q.passed ? 'Passed' : 'Failed'"></p>
+                                        </div>
+                                        <button @click="showToast('Detailed answer review downloaded', 'info')" class="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100">
+                                            <i data-lucide="eye" class="w-5 h-5"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ========================================== -->
+                <!-- 7. INSTRUCTOR DASHBOARD                    -->
+                <!-- ========================================== -->
+                <div x-show="role === 'instructor' && activeTab === 'instructor-dashboard'" class="space-y-6" x-cloak>
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                            <div class="p-3 bg-indigo-50 rounded-xl text-indigo-600">
+                                <i data-lucide="layers" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500">Total Courses</p>
+                                <p class="text-2xl font-bold text-slate-900 mt-0.5">12</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                            <div class="p-3 bg-emerald-50 rounded-xl text-emerald-600">
+                                <i data-lucide="check-circle" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500">Published Courses</p>
+                                <p class="text-2xl font-bold text-slate-900 mt-0.5">9</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                            <div class="p-3 bg-blue-50 rounded-xl text-blue-600">
+                                <i data-lucide="users" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500">Total Students</p>
+                                <p class="text-2xl font-bold text-slate-900 mt-0.5">1,420</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                            <div class="p-3 bg-purple-50 rounded-xl text-purple-600">
+                                <i data-lucide="trending-up" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500">Avg Completion</p>
+                                <p class="text-2xl font-bold text-slate-900 mt-0.5">74%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-900 text-base mb-1">Student Enrollment Trend</h3>
+                            <p class="text-xs text-slate-500 mb-4">Monthly student enrollments in 2026</p>
+                            <div class="h-64 relative">
+                                <canvas id="instructorEnrollmentChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base mb-1">Category Distribution</h3>
+                                <p class="text-xs text-slate-500 mb-4">Course share by subject</p>
+                            </div>
+                            <div class="h-56 relative flex items-center justify-center">
+                                <canvas id="instructorCategoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- 8. COURSE MANAGEMENT TABLE                 -->
+                <!-- ========================================== -->
+                <div x-show="role === 'instructor' && activeTab === 'course-mgmt'" class="space-y-6" x-cloak>
+                    <!-- Action Bar -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="relative w-full sm:w-80">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" x-model="instructorCourseSearch" placeholder="Search course by name..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="flex items-center space-x-3 w-full sm:w-auto">
+                            <button @click="openCreateCourseModal()" class="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center space-x-2 shadow-sm">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>Create New Course</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Courses Table -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+                                <tr>
+                                    <th class="p-4">Course</th>
+                                    <th class="p-4">Status</th>
+                                    <th class="p-4">Students</th>
+                                    <th class="p-4">Lessons</th>
+                                    <th class="p-4">Completion</th>
+                                    <th class="p-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <template x-for="course in filteredInstructorCourses" :key="course.id">
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="p-4">
+                                            <div class="flex items-center space-x-3">
+                                                <img :src="course.thumbnail" class="w-12 h-10 object-cover rounded-lg flex-shrink-0" alt="Cover">
+                                                <div>
+                                                    <p class="font-bold text-sm text-slate-900" x-text="course.title"></p>
+                                                    <p class="text-[11px] text-slate-400" x-text="course.category"></p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="p-4">
+                                            <span 
+                                                :class="course.status === 'Published' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'"
+                                                class="px-2.5 py-1 rounded-full text-[10px] font-semibold border"
+                                                x-text="course.status">
+                                            </span>
+                                        </td>
+                                        <td class="p-4 font-semibold text-slate-800" x-text="course.studentsCount"></td>
+                                        <td class="p-4" x-text="course.lessonsCount"></td>
+                                        <td class="p-4">
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-16 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                                    <div class="bg-indigo-600 h-1.5 rounded-full" :style="'width: ' + course.completionRate + '%'"></div>
+                                                </div>
+                                                <span class="font-medium text-slate-700" x-text="course.completionRate + '%'"></span>
+                                            </div>
+                                        </td>
+                                        <td class="p-4 text-right space-x-1">
+                                            <button @click="openBuilderModal(course)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-medium text-[11px] transition-colors" title="Manage Content">
+                                                Builder
+                                            </button>
+                                            <button @click="editCourse(course)" class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-md hover:bg-slate-100">
+                                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                            </button>
+                                            <button @click="deleteCourse(course.id)" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-md hover:bg-slate-100">
+                                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- 9. STUDENTS DIRECTORY                      -->
+                <!-- ========================================== -->
+                <div x-show="role === 'instructor' && activeTab === 'students'" class="space-y-6" x-cloak>
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-600">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+                                <tr>
+                                    <th class="p-4">Student</th>
+                                    <th class="p-4">Enrolled Course</th>
+                                    <th class="p-4">Enrolled Date</th>
+                                    <th class="p-4">Progress</th>
+                                    <th class="p-4">Quiz Avg</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <template x-for="st in studentsList" :key="st.id">
+                                    <tr class="hover:bg-slate-50/50">
+                                        <td class="p-4">
+                                            <div class="flex items-center space-x-3">
+                                                <img :src="st.avatar" class="w-8 h-8 rounded-full object-cover" alt="Student">
+                                                <div>
+                                                    <p class="font-bold text-slate-900" x-text="st.name"></p>
+                                                    <p class="text-[11px] text-slate-400" x-text="st.email"></p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="p-4 font-medium text-slate-800" x-text="st.course"></td>
+                                        <td class="p-4 text-slate-500" x-text="st.date"></td>
+                                        <td class="p-4 font-bold text-indigo-600" x-text="st.progress + '%'"></td>
+                                        <td class="p-4 font-bold text-emerald-600" x-text="st.quizAvg + '%'"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- 10. INSTRUCTOR ANALYTICS                   -->
+                <!-- ========================================== -->
+                <div x-show="role === 'instructor' && activeTab === 'analytics'" class="space-y-6" x-cloak>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-900 text-base mb-2">Student Progression Rates</h3>
+                            <div class="h-64 relative">
+                                <canvas id="analyticsProgressionChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-900 text-base mb-2">Course Ratings Breakdown</h3>
+                            <div class="h-64 relative">
+                                <canvas id="analyticsRatingsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- 11. PROFILE PAGE                           -->
+                <!-- ========================================== -->
+                <div x-show="activeTab === 'profile'" class="max-w-2xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6" x-cloak>
+                    <div class="flex items-center space-x-4 border-b border-slate-100 pb-6">
+                        <img :src="user.avatar" class="w-16 h-16 rounded-full border-2 border-indigo-600 object-cover" alt="Profile">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-900" x-text="user.name"></h2>
+                            <p class="text-xs text-slate-500" x-text="user.email"></p>
+                            <span class="inline-block mt-2 px-2.5 py-0.5 bg-indigo-50 text-indigo-700 font-semibold text-[10px] rounded-full uppercase tracking-wider" x-text="role"></span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
+                            <input type="text" x-model="user.name" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+                            <input type="email" x-model="user.email" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800">
+                        </div>
+                        <button @click="showToast('Profile updated successfully', 'success')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition-colors">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- MODAL: CREATE / EDIT COURSE                -->
+    <!-- ========================================== -->
+    <div x-show="showCourseModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-900" x-text="courseForm.id ? 'Edit Course' : 'Create New Course'"></h3>
+                <button @click="showCourseModal = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Course Title</label>
+                    <input type="text" x-model="courseForm.title" placeholder="e.g., Master React & TypeScript" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Category</label>
+                    <select x-model="courseForm.category" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
+                        <option value="Web Dev">Web Dev</option>
+                        <option value="Backend">Backend</option>
+                        <option value="Data Science">Data Science</option>
+                        <option value="Design">Design</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Level</label>
+                    <select x-model="courseForm.level" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Description</label>
+                    <textarea x-model="courseForm.description" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"></textarea>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Status</label>
+                    <select x-model="courseForm.status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
+                        <option value="Published">Published</option>
+                        <option value="Draft">Draft</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100">
+                <button @click="showCourseModal = false" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-200">Cancel</button>
+                <button @click="saveCourse()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700">Save Course</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL: COURSE CONTENT BUILDER             -->
+    <!-- ========================================== -->
+    <div x-show="showBuilderModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl space-y-5 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-shrink-0">
+                <div>
+                    <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Curriculum Builder</span>
+                    <h3 class="font-bold text-base text-slate-900" x-text="builderCourse?.title"></h3>
+                </div>
+                <button @click="showBuilderModal = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-4 pr-1">
+                <template x-for="(mod, mIdx) in builderCourse?.modules" :key="mIdx">
+                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-sm text-slate-800" x-text="mod.title"></span>
+                            <button @click="addLessonToModule(mod)" class="text-xs text-indigo-600 font-semibold hover:underline">+ Add Lesson</button>
+                        </div>
+
+                        <div class="space-y-2 pl-3 border-l-2 border-indigo-200">
+                            <template x-for="(les, lIdx) in mod.lessons" :key="lIdx">
+                                <div class="p-2 bg-white rounded-lg border border-slate-200 text-xs flex justify-between items-center">
+                                    <span x-text="les.title"></span>
+                                    <span class="text-slate-400" x-text="les.duration"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex justify-between items-center flex-shrink-0">
+                <button @click="addModuleToBuilder()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold">+ Add Module</button>
+                <button @click="showBuilderModal = false; showToast('Curriculum updated successfully', 'success')" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700">Done Editing</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GLOBAL TOAST NOTIFICATION CONTAINER -->
+    <div class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none">
+        <template x-for="t in toasts" :key="t.id">
+            <div 
+                x-show="t.visible" 
+                x-transition:enter="transition ease-out duration-300 transform"
+                x-transition:enter-start="opacity-0 translate-y-2"
+                x-transition:enter-end="opacity-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                :class="{
+                    'bg-slate-900 text-white': t.type === 'info',
+                    'bg-emerald-600 text-white': t.type === 'success',
+                    'bg-rose-600 text-white': t.type === 'error'
+                }"
+                class="px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center space-x-3 pointer-events-auto max-w-xs">
+                <i :data-lucide="t.type === 'success' ? 'check-circle' : 'info'" class="w-4 h-4 flex-shrink-0"></i>
+                <span x-text="t.message"></span>
+            </div>
+        </template>
+    </div>
+
+    <script>
+        function lmsApp() {
+            return {
+                mobileSidebarOpen: false,
+                role: 'student', // 'student' | 'instructor'
+                activeTab: 'student-dashboard',
+                searchQuery: '',
+                exploreSearch: '',
+                selectedCategory: 'All',
+                selectedLevel: 'All',
+                instructorCourseSearch: '',
+
+                // User profile info
+                user: {
+                    name: 'Alex Rivera',
+                    email: 'alex.rivera@learnify.io',
+                    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+                },
+
+                // Toasts state
+                toasts: [],
+
+                // Student KPI
+                studentKpis: {
+                    enrolled: 4,
+                    completed: 1,
+                    lessonsDone: 32,
+                    avgScore: 88
+                },
+
+                // Main Courses Data
+                courses: [
+                    {
+                        id: 1,
+                        title: 'Modern React Development',
+                        category: 'Web Dev',
+                        level: 'Intermediate',
+                        instructor: 'Sarah Drasner',
+                        rating: 4.9,
+                        lessonsCount: 24,
+                        completedLessons: 18,
+                        progress: 75,
+                        isEnrolled: true,
+                        status: 'Published',
+                        studentsCount: 420,
+                        completionRate: 82,
+                        thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&auto=format&fit=crop&q=80',
+                        description: 'Master component-driven architecture, state management hooks, and scalable clean code patterns.',
+                        modules: [
+                            {
+                                title: 'Module 1 — Introduction & Setup',
+                                lessons: [
+                                    { id: 101, title: 'What is React?', duration: '10:15', completed: true, description: 'Understanding virtual DOM and declarative rendering models.' },
+                                    { id: 102, title: 'Environment Setup with Vite', duration: '12:40', completed: true, description: 'Setting up modern tooling and ESLint standards.' }
+                                ],
+                                quiz: {
+                                    id: 201,
+                                    title: 'React Basics Quiz',
+                                    questions: [
+                                        { questionText: 'What is the Virtual DOM?', options: ['A lightweight copy of the real DOM', 'A hardware GPU engine', 'A CSS preprocessor', 'A backend server'], correct: 0 },
+                                        { questionText: 'Which hook manages state?', options: ['useEffect', 'useState', 'useRef', 'useContext'], correct: 1 }
+                                    ]
+                                }
+                            },
+                            {
+                                title: 'Module 2 — React Fundamentals',
+                                lessons: [
+                                    { id: 103, title: 'Components & JSX Structure', duration: '14:20', completed: true, description: 'Building modular reusable UI blocks.' },
+                                    { id: 104, title: 'Props & State Management', duration: '18:10', completed: false, description: 'Unidirectional data flow principles.' }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        title: 'Node.js & Express Masterclass',
+                        category: 'Backend',
+                        level: 'Advanced',
+                        instructor: 'Dan Abramov',
+                        rating: 4.8,
+                        lessonsCount: 30,
+                        completedLessons: 10,
+                        progress: 33,
+                        isEnrolled: true,
+                        status: 'Published',
+                        studentsCount: 310,
+                        completionRate: 65,
+                        thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+                        description: 'Build enterprise RESTful APIs, authentication middleware, and database integrations.',
+                        modules: [
+                            {
+                                title: 'Module 1 — Node.js Core Architecture',
+                                lessons: [
+                                    { id: 201, title: 'Event Loop & Non-blocking I/O', duration: '15:00', completed: true, description: 'Deep dive into libuv and event loops.' },
+                                    { id: 202, title: 'Building Express Middleware', duration: '11:30', completed: false, description: 'Request lifecycle handling.' }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: 3,
+                        title: 'Python for Data Analysis',
+                        category: 'Data Science',
+                        level: 'Beginner',
+                        instructor: 'Guido van Rossum',
+                        rating: 4.7,
+                        lessonsCount: 18,
+                        completedLessons: 18,
+                        progress: 100,
+                        isEnrolled: true,
+                        status: 'Published',
+                        studentsCount: 510,
+                        completionRate: 90,
+                        thumbnail: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&auto=format&fit=crop&q=80',
+                        description: 'Harness Pandas, NumPy, and Matplotlib to analyze complex datasets effortlessly.',
+                        modules: []
+                    },
+                    {
+                        id: 4,
+                        title: 'UI/UX Design Fundamentals',
+                        category: 'Design',
+                        level: 'Beginner',
+                        instructor: 'Steve Schoger',
+                        rating: 4.9,
+                        lessonsCount: 16,
+                        completedLessons: 0,
+                        progress: 0,
+                        isEnrolled: false,
+                        status: 'Draft',
+                        studentsCount: 180,
+                        completionRate: 50,
+                        thumbnail: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&auto=format&fit=crop&q=80',
+                        description: 'Learn modern typographic hierarchy, visual hierarchy, grid systems, and Figma prototyping.',
+                        modules: []
+                    }
+                ],
+
+                // Student Quiz Performance History
+                quizResults: [
+                    { id: 1, quizTitle: 'React Basics Assessment', courseTitle: 'Modern React Development', score: 90, passed: true, date: 'Oct 02, 2026' },
+                    { id: 2, quizTitle: 'Node Architecture Check', courseTitle: 'Node.js & Express Masterclass', score: 85, passed: true, date: 'Sep 28, 2026' }
+                ],
+
+                // Students List (For Instructor)
+                studentsList: [
+                    { id: 1, name: 'Jessica Taylor', email: 'jessica@dev.com', course: 'Modern React Development', date: 'Oct 01, 2026', progress: 80, quizAvg: 92, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80' },
+                    { id: 2, name: 'Marcus Chen', email: 'marcus@code.org', course: 'Node.js Masterclass', date: 'Sep 25, 2026', progress: 45, quizAvg: 84, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80' }
+                ],
+
+                // Current Active States for Lesson Player & Quiz
+                currentActiveCourse: null,
+                activeLesson: null,
+                activeQuiz: null,
+                currentQuestionIdx: 0,
+                quizAnswers: [],
+
+                // Modal state handlers
+                showCourseModal: false,
+                courseForm: { id: null, title: '', category: 'Web Dev', level: 'Beginner', description: '', status: 'Draft' },
+
+                showBuilderModal: false,
+                builderCourse: null,
+
+                initApp() {
+                    this.currentActiveCourse = this.courses[0];
+                    if (this.currentActiveCourse.modules.length > 0) {
+                        this.activeLesson = this.currentActiveCourse.modules[0].lessons[0];
+                    }
+                    this.$nextTick(() => {
+                        this.renderCharts();
+                        if (window.lucide) lucide.createIcons();
+                    });
+                },
+
+                switchRole(newRole) {
+                    this.role = newRole;
+                    this.activeTab = newRole === 'student' ? 'student-dashboard' : 'instructor-dashboard';
+                    this.showToast(`Switched to ${newRole.toUpperCase()} View`, 'info');
+                    this.$nextTick(() => {
+                        this.renderCharts();
+                        if (window.lucide) lucide.createIcons();
+                    });
+                },
+
+                getPageTitle() {
+                    return this.activeTab.replace('-', ' ');
+                },
+
+                showToast(message, type = 'info') {
+                    const id = Date.now();
+                    this.toasts.push({ id, message, type, visible: true });
+                    setTimeout(() => {
+                        this.toasts = this.toasts.filter(t => t.id !== id);
+                    }, 3000);
+                },
+
+                getEnrolledCourses() {
+                    return this.courses.filter(c => c.isEnrolled);
+                },
+
+                get filteredExploreCourses() {
+                    return this.courses.filter(c => {
+                        const matchesSearch = c.title.toLowerCase().includes(this.exploreSearch.toLowerCase()) || 
+                                              c.instructor.toLowerCase().includes(this.exploreSearch.toLowerCase());
+                        const matchesCat = this.selectedCategory === 'All' || c.category === this.selectedCategory;
+                        const matchesLvl = this.selectedLevel === 'All' || c.level === this.selectedLevel;
+                        return matchesSearch && matchesCat && matchesLvl;
+                    });
+                },
+
+                get filteredInstructorCourses() {
+                    return this.courses.filter(c => c.title.toLowerCase().includes(this.instructorCourseSearch.toLowerCase()));
+                },
+
+                toggleEnrollment(course) {
+                    course.isEnrolled = !course.isEnrolled;
+                    if (course.isEnrolled) {
+                        this.showToast(`Enrolled in "${course.title}" successfully!`, 'success');
+                    } else {
+                        this.showToast(`Removed from enrolled list`, 'info');
+                    }
+                },
+
+                openLessonPlayer(course) {
+                    this.currentActiveCourse = course;
+                    if (course.modules && course.modules.length > 0 && course.modules[0].lessons.length > 0) {
+                        this.activeLesson = course.modules[0].lessons[0];
+                    }
+                    this.activeTab = 'lesson-player';
+                    this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+                },
+
+                toggleMarkComplete() {
+                    if (!this.activeLesson) return;
+                    this.activeLesson.completed = !this.activeLesson.completed;
+                    this.showToast(this.activeLesson.completed ? 'Lesson marked as completed!' : 'Lesson status updated', 'success');
+                },
+
+                startQuiz(quiz) {
+                    this.activeQuiz = quiz;
+                    this.currentQuestionIdx = 0;
+                    this.quizAnswers = new Array(quiz.questions.length).fill(null);
+                    this.activeTab = 'quiz-view';
+                },
+
+                submitQuiz() {
+                    let correctCount = 0;
+                    this.activeQuiz.questions.forEach((q, idx) => {
+                        if (this.quizAnswers[idx] === q.correct) correctCount++;
+                    });
+                    const score = Math.round((correctCount / this.activeQuiz.questions.length) * 100);
+                    const passed = score >= 70;
+
+                    this.quizResults.unshift({
+                        id: Date.now(),
+                        quizTitle: this.activeQuiz.title,
+                        courseTitle: this.currentActiveCourse?.title || 'General Course',
+                        score: score,
+                        passed: passed,
+                        date: 'Just Now'
+                    });
+
+                    this.showToast(`Quiz Submitted! Final Score: ${score}%`, passed ? 'success' : 'error');
+                    this.activeTab = 'quiz-results';
+                },
+
+                openCreateCourseModal() {
+                    this.courseForm = { id: null, title: '', category: 'Web Dev', level: 'Beginner', description: '', status: 'Draft' };
+                    this.showCourseModal = true;
+                },
+
+                editCourse(course) {
+                    this.courseForm = { ...course };
+                    this.showCourseModal = true;
+                },
+
+                saveCourse() {
+                    if (!this.courseForm.title) {
+                        this.showToast('Please enter course title', 'error');
+                        return;
+                    }
+                    if (this.courseForm.id) {
+                        const idx = this.courses.findIndex(c => c.id === this.courseForm.id);
+                        if (idx !== -1) this.courses[idx] = { ...this.courses[idx], ...this.courseForm };
+                        this.showToast('Course updated successfully', 'success');
+                    } else {
+                        const newCourse = {
+                            id: Date.now(),
+                            ...this.courseForm,
+                            instructor: 'Alex Rivera',
+                            rating: 5.0,
+                            lessonsCount: 0,
+                            completedLessons: 0,
+                            progress: 0,
+                            isEnrolled: false,
+                            studentsCount: 0,
+                            completionRate: 0,
+                            thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=80',
+                            modules: []
+                        };
+                        this.courses.push(newCourse);
+                        this.showToast('New course created successfully', 'success');
+                    }
+                    this.showCourseModal = false;
+                },
+
+                deleteCourse(courseId) {
+                    this.courses = this.courses.filter(c => c.id !== courseId);
+                    this.showToast('Course deleted', 'info');
+                },
+
+                openBuilderModal(course) {
+                    this.builderCourse = course;
+                    this.showBuilderModal = true;
+                },
+
+                addModuleToBuilder() {
+                    if (!this.builderCourse.modules) this.builderCourse.modules = [];
+                    this.builderCourse.modules.push({
+                        title: `Module ${this.builderCourse.modules.length + 1} — New Topic`,
+                        lessons: []
+                    });
+                    this.showToast('Added new module block', 'success');
+                },
+
+                addLessonToModule(module) {
+                    module.lessons.push({
+                        id: Date.now(),
+                        title: 'New Lesson Title',
+                        duration: '10:00',
+                        completed: false,
+                        description: 'New lesson description...'
+                    });
+                    this.showToast('Added lesson', 'success');
+                },
+
+                renderCharts() {
+                    // Student Activity Chart
+                    const ctx1 = document.getElementById('studentActivityChart');
+                    if (ctx1) {
+                        new Chart(ctx1, {
+                            type: 'line',
+                            data: {
+                                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                                datasets: [{
+                                    label: 'Hours Spent',
+                                    data: [1.5, 2.8, 1.2, 3.5, 2.0, 4.2, 3.0],
+                                    borderColor: '#4F46E5',
+                                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                                    fill: true,
+                                    tension: 0.4
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                        });
+                    }
+
+                    // Instructor Enrollment Chart
+                    const ctx2 = document.getElementById('instructorEnrollmentChart');
+                    if (ctx2) {
+                        new Chart(ctx2, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                                datasets: [{
+                                    label: 'New Enrollments',
+                                    data: [120, 190, 300, 250, 420, 380, 510, 490, 620, 710],
+                                    backgroundColor: '#4F46E5',
+                                    borderRadius: 6
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                        });
+                    }
+
+                    // Instructor Category Chart
+                    const ctx3 = document.getElementById('instructorCategoryChart');
+                    if (ctx3) {
+                        new Chart(ctx3, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Web Dev', 'Backend', 'Data Science', 'Design'],
+                                datasets: [{
+                                    data: [45, 25, 20, 10],
+                                    backgroundColor: ['#4F46E5', '#10B981', '#F59E0B', '#8B5CF6']
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false }
+                        });
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
