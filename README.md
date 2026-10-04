@@ -1,23 +1,143 @@
 # Learnify
 
-Learnify adalah Learning Management System berbasis MERN stack + TypeScript untuk student dan instructor.
+Learnify is a full-stack Learning Management System built with the MERN stack and TypeScript. It supports two main roles: students who enroll in courses and instructors who create learning content, quizzes, and analytics.
 
-## Menjalankan Project
+## Features
+
+- Authentication with student and instructor roles
+- Role-based route protection on the API
+- Course, module, and lesson management
+- Course catalog and enrollment flow
+- Learning page with lesson completion tracking
+- Progress calculation per enrollment
+- Multiple-choice quiz flow with backend grading
+- Student dashboard for learning progress and quiz results
+- Instructor dashboard for course performance and student analytics
+- Responsive React UI based on role-specific LMS workflows
+
+## Tech Stack
+
+**Frontend**
+
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+- Axios
+- Recharts
+- Lucide React
+
+**Backend**
+
+- Node.js
+- Express
+- TypeScript
+- MongoDB Atlas
+- Mongoose
+- JWT
+- bcrypt
+
+## Requirements
+
+- Node.js 18 or newer
+- npm
+- MongoDB Atlas connection string
+
+## Environment Variables
+
+Create `server/.env`:
+
+```env
+PORT=5000
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/learnify
+MONGODB_DB_NAME=learnify
+MONGODB_DNS_SERVERS=8.8.8.8,1.1.1.1
+JWT_SECRET=your_secret
+JWT_EXPIRES_IN=7d
+CLIENT_URL=http://localhost:5173
+SKIP_DB=false
+```
+
+Create `client/.env`:
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+`MONGODB_DNS_SERVERS` is optional, but useful when the local Node.js DNS resolver cannot resolve MongoDB Atlas SRV records.
+
+## Installation
 
 ```bash
 npm install
 npm run install:all
-cp server/.env.example server/.env
-cp client/.env.example client/.env
+```
+
+## Development
+
+```bash
 npm run dev
 ```
 
-Frontend berjalan di `http://localhost:5173`, backend di `http://localhost:5000/api`.
-Gunakan `npm run build` dari root untuk compile backend TypeScript dan build frontend production.
+Frontend:
 
-## Role Demo
+```txt
+http://localhost:5173
+```
 
-- Student dapat melihat katalog course, enroll, lanjut belajar, menyelesaikan lesson, dan mengerjakan quiz.
-- Instructor dapat membuat course, module, lesson, quiz, publish course, serta melihat analytics dan daftar student.
+Backend:
 
-Backend menggunakan MongoDB melalui `MONGODB_URI`. Untuk smoke test API tanpa koneksi database, set `SKIP_DB=true`.
+```txt
+http://localhost:5000/api
+```
+
+Health check:
+
+```txt
+GET http://localhost:5000/api/health
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+This compiles the TypeScript backend and builds the frontend for production.
+
+## Production Start
+
+```bash
+npm start
+```
+
+The backend starts from the compiled output in `server/dist`.
+
+## Project Scripts
+
+- `npm run dev` - start frontend and backend concurrently
+- `npm run install:all` - install dependencies for both apps
+- `npm run build` - build backend and frontend
+- `npm start` - start the compiled backend
+
+## API Overview
+
+Base URL:
+
+```txt
+/api
+```
+
+Main route groups:
+
+- `/auth`
+- `/courses`
+- `/modules`
+- `/lessons`
+- `/enrollments`
+- `/quizzes`
+- `/instructor`
+
+## Status
+
+The project is configured for TypeScript development, MongoDB Atlas connectivity, and role-based LMS workflows for student and instructor experiences.

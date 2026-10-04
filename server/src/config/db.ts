@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import dns from 'node:dns';
 
 export async function connectDB() {
   if (process.env.SKIP_DB === 'true') {
@@ -12,8 +13,14 @@ export async function connectDB() {
     return;
   }
 
+  if (process.env.MONGODB_DNS_SERVERS) {
+    dns.setServers(process.env.MONGODB_DNS_SERVERS.split(',').map((server) => server.trim()));
+  }
+
   try {
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, {
+      dbName: process.env.MONGODB_DB_NAME || 'learnify'
+    });
     console.log('MongoDB connected');
   } catch (error) {
     console.error('MongoDB connection failed:', error.message);
