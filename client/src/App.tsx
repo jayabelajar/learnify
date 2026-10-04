@@ -377,7 +377,7 @@ function SidebarHeader({ role, onClose }) {
   );
 }
 
-function Brand({ subtitle }) {
+function Brand({ subtitle = null }) {
   return (
     <div className="flex items-center gap-3">
       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-xl font-bold text-white shadow-md shadow-indigo-200">
@@ -506,7 +506,7 @@ function KpiGrid({ cards }) {
   );
 }
 
-function Panel({ title, children, className = '' }) {
+function Panel({ title = null, children, className = '' }) {
   return (
     <section className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}>
       {title && <h3 className="mb-4 text-base font-bold">{title}</h3>}

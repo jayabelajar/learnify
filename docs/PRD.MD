@@ -765,7 +765,7 @@ Profile
 
 React.js
 Vite
-JavaScript / TypeScript
+TypeScript
 Tailwind CSS
 React Router
 Axios

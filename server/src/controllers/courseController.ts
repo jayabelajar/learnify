@@ -24,7 +24,7 @@ async function assertOwner(courseId, userId) {
 
 export const listCourses = asyncHandler(async (req, res) => {
   const { search = '', category, level, mine } = req.query;
-  const filter = {};
+  const filter: Record<string, unknown> = {};
 
   if (req.user?.role === 'instructor' && mine === 'true') {
     filter.instructor = req.user._id;

@@ -35,7 +35,7 @@ export const register = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
-  if (!user || !(await user.matchPassword(password))) {
+  if (!user || !(await (user as any).matchPassword(password))) {
     res.status(401);
     throw new Error('Invalid email or password');
   }

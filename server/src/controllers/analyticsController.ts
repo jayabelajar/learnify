@@ -10,7 +10,9 @@ export const instructorDashboard = asyncHandler(async (req, res) => {
   const courseIds = courses.map((course) => course._id);
   const enrollments = await Enrollment.find({ course: { $in: courseIds } }).populate('student', 'name email avatar');
   const attempts = await QuizAttempt.find({}).populate('quiz', 'course title');
-  const ownedAttempts = attempts.filter((attempt) => courseIds.some((id) => id.toString() === attempt.quiz?.course?.toString()));
+  const ownedAttempts = attempts.filter((attempt) =>
+    courseIds.some((id) => id.toString() === (attempt.quiz as any)?.course?.toString())
+  );
   const publishedCourses = courses.filter((course) => course.status === 'published').length;
   const avgCompletion = enrollments.length
     ? Math.round(enrollments.reduce((sum, item) => sum + item.progress, 0) / enrollments.length)
