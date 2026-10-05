@@ -54,7 +54,7 @@ export function AppContent({ model }: { model: AppModel }) {
               onSearch={actions.setCourseSearch}
               onCreate={actions.openCreateCourseModal}
               onEdit={actions.openEditCourseModal}
-              onDelete={(courseId) => actions.setCourses((items) => items.filter((course) => course.id !== courseId))}
+              onDelete={actions.deleteCourse}
               onTogglePublish={actions.togglePublish}
               onManage={actions.manageCourseContent}
             />

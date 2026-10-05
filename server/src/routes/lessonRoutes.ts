@@ -5,7 +5,7 @@ import { authorize, protect } from '../middleware/authMiddleware.js';
 const router = Router();
 
 router.get('/:id', protect, getLesson);
-router.put('/:id', protect, authorize('instructor'), updateLesson);
-router.delete('/:id', protect, authorize('instructor'), deleteLesson);
+router.put('/:id', protect, authorize('instructor', 'admin'), updateLesson);
+router.delete('/:id', protect, authorize('instructor', 'admin'), deleteLesson);
 
 export default router;

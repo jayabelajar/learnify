@@ -8,7 +8,7 @@ declare global {
         name?: string;
         email?: string;
         avatar?: string;
-        role?: 'student' | 'instructor';
+        role?: 'student' | 'instructor' | 'admin';
       };
     }
   }

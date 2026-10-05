@@ -3,10 +3,10 @@ import Lesson from '../models/Lesson.js';
 import Module from '../models/Module.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-async function ownedCourse(courseId, userId) {
+async function ownedCourse(courseId, user) {
   const course = await Course.findById(courseId);
   if (!course) throw new Error('Course not found');
-  if (course.instructor.toString() !== userId.toString()) {
+  if (user.role !== 'admin' && course.instructor.toString() !== user._id.toString()) {
     const error = new Error('You can only manage your own course');
     error.statusCode = 403;
     throw error;
@@ -20,7 +20,7 @@ export const listModules = asyncHandler(async (req, res) => {
 });
 
 export const createModule = asyncHandler(async (req, res) => {
-  await ownedCourse(req.params.courseId, req.user._id);
+  await ownedCourse(req.params.courseId, req.user);
   const moduleDoc = await Module.create({ ...req.body, course: req.params.courseId });
   res.status(201).json(moduleDoc);
 });
@@ -31,7 +31,7 @@ export const updateModule = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Module not found');
   }
-  await ownedCourse(moduleDoc.course, req.user._id);
+  await ownedCourse(moduleDoc.course, req.user);
   Object.assign(moduleDoc, req.body);
   await moduleDoc.save();
   res.json(moduleDoc);
@@ -43,7 +43,7 @@ export const deleteModule = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Module not found');
   }
-  await ownedCourse(moduleDoc.course, req.user._id);
+  await ownedCourse(moduleDoc.course, req.user);
   await Lesson.deleteMany({ module: moduleDoc._id });
   await moduleDoc.deleteOne();
   res.json({ message: 'Module deleted' });

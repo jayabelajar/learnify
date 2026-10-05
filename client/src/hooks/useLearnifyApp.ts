@@ -3,6 +3,7 @@ import { seedCourses, seedQuizResults } from '../data/demoData';
 import { roleProfiles } from '../data/users';
 import type { Course, Lesson, Quiz, Role, UserProfile } from '../types';
 import { buildSearchResults, emptyCourse, filterCourses, initialRole, initialRouteTab, initialTab, loginPathByRole, navForRole, pathForTab } from '../utils/app';
+import { authApi, courseApi, enrollmentApi, lessonApi, moduleApi, userApi } from '../services/api';
 
 export type CourseForm = Partial<Course> & {
   title: string;
@@ -13,6 +14,66 @@ export type CourseForm = Partial<Course> & {
   status: 'draft' | 'published';
   modules: Course['modules'];
 };
+
+const authStorageKey = 'learnify-auth';
+
+function normalizeProfile(user: any): UserProfile {
+  return {
+    name: user?.name || 'Learnify User',
+    email: user?.email || '',
+    role: user?.role || 'student',
+    avatar: user?.avatar || roleProfiles[user?.role || 'student'].avatar,
+    password: ''
+  };
+}
+
+function normalizeCourse(course: any, enrolled = false, progress = 0): Course {
+  const instructor = typeof course?.instructor === 'object' ? course.instructor?.name : course?.instructor;
+  return {
+    id: course?._id || course?.id,
+    title: course?.title || 'Untitled Course',
+    category: course?.category || 'General',
+    level: course?.level || 'Beginner',
+    instructor: instructor || 'Learnify Instructor',
+    rating: course?.rating || 4.8,
+    status: course?.status || 'draft',
+    studentsCount: course?.studentsCount || 0,
+    completionRate: course?.completionRate || 0,
+    progress,
+    isEnrolled: enrolled || Boolean(course?.isEnrolled),
+    thumbnail: course?.thumbnail || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=900&auto=format&fit=crop&q=80',
+    description: course?.description || '',
+    shortDescription: course?.shortDescription || '',
+    modules: (course?.modules || []).map((module: any) => ({
+      id: module?._id || module?.id,
+      title: module?.title || 'Module',
+      lessons: (module?.lessons || []).map((lesson: any) => ({
+        id: lesson?._id || lesson?.id,
+        title: lesson?.title || 'Lesson',
+        type: lesson?.type || 'article',
+        duration: lesson?.duration || 0,
+        completed: Boolean(lesson?.completed),
+        description: lesson?.description || '',
+        content: lesson?.content || '',
+        videoUrl: lesson?.videoUrl || '',
+        submissionInstructions: lesson?.submissionInstructions || '',
+        quiz: lesson?.quiz?.title
+          ? {
+              id: lesson?.quiz?._id || lesson?.id,
+              title: lesson.quiz.title,
+              passingScore: lesson.quiz.passingScore || 70,
+              questions: (lesson.quiz.questions || []).map((question: any, index: number) => ({
+                id: question?._id || `${lesson?._id || lesson?.id}-q-${index}`,
+                question: question.question,
+                options: question.options || [],
+                correctAnswer: question.correctAnswer || 0
+              }))
+            }
+          : lesson?.quiz
+      }))
+    }))
+  };
+}
 
 export function useLearnifyApp() {
   const startRole = initialRole();
@@ -41,12 +102,49 @@ export function useLearnifyApp() {
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [courseForm, setCourseForm] = useState<CourseForm>(emptyCourse());
+  const [authToken, setAuthToken] = useState<string>(() => JSON.parse(localStorage.getItem(authStorageKey) || 'null')?.token || '');
 
   useEffect(() => {
     if (window.location.pathname === '/') {
       window.history.replaceState({}, '', loginPathByRole[startRole]);
     }
   }, [startRole]);
+
+  useEffect(() => {
+    const auth = JSON.parse(localStorage.getItem(authStorageKey) || 'null');
+    if (!auth?.token || activeTab.startsWith('login-')) return;
+    setAuthToken(auth.token);
+    if (auth.user) {
+      setRole(auth.user.role);
+      setProfile(normalizeProfile(auth.user));
+    }
+    void loadRemoteData(auth.user?.role || role);
+  }, []);
+
+  async function loadRemoteData(nextRole: Role = role) {
+    try {
+      const courseResponse = await courseApi.list(nextRole === 'instructor' ? { mine: 'true' } : {});
+      const remoteCourses = courseResponse.data.map((course: any) => normalizeCourse(course));
+
+      if (nextRole === 'student') {
+        const enrolledResponse = await enrollmentApi.myCourses();
+        const enrolled = enrolledResponse.data.map((item: any) => normalizeCourse(item.course, true, item.progress || 0));
+        const enrolledIds = new Set(enrolled.map((course: Course) => course.id));
+        setCourses([...enrolled, ...remoteCourses.filter((course: Course) => !enrolledIds.has(course.id))]);
+        return;
+      }
+
+      setCourses(remoteCourses.length ? remoteCourses : (seedCourses as Course[]));
+
+      if (nextRole === 'admin') {
+        const usersResponse = await userApi.list();
+        setUsers(usersResponse.data.map(normalizeProfile));
+      }
+    } catch (_error) {
+      setCourses(seedCourses as Course[]);
+      setUsers(Object.values(roleProfiles));
+    }
+  }
 
   const navItems = navForRole(role);
   const enrolledCourses = courses.filter((course) => course.isEnrolled);
@@ -84,17 +182,28 @@ export function useLearnifyApp() {
     setSearchOpen(false);
   }
 
-  function login(nextRole: Role = role) {
+  async function login(nextRole: Role = role, email = roleProfiles[nextRole].email, password = roleProfiles[nextRole].password) {
     const nextTab = initialTab(nextRole);
+    try {
+      const response = await authApi.login({ email, password, role: nextRole });
+      localStorage.setItem(authStorageKey, JSON.stringify(response.data));
+      setAuthToken(response.data.token);
+      setProfile(normalizeProfile(response.data.user));
+      await loadRemoteData(nextRole);
+    } catch (_error) {
+      setAuthToken('');
+      setProfile(roleProfiles[nextRole]);
+    }
     window.history.pushState({}, '', pathForTab(nextRole, nextTab));
     setRole(nextRole);
-    setProfile(roleProfiles[nextRole]);
     setActiveTab(nextTab);
     setMobileSidebarOpen(false);
     setSearchOpen(false);
   }
 
   function logout() {
+    localStorage.removeItem(authStorageKey);
+    setAuthToken('');
     goToLogin(role);
     setProfileOpen(false);
   }
@@ -105,6 +214,7 @@ export function useLearnifyApp() {
   }
 
   function toggleEnrollment(courseId: string) {
+    if (authToken) void enrollmentApi.enroll(courseId).then(() => loadRemoteData('student')).catch(() => null);
     setCourses((items) => items.map((course) => (course.id === courseId ? { ...course, isEnrolled: !course.isEnrolled } : course)));
   }
 
@@ -117,6 +227,7 @@ export function useLearnifyApp() {
 
   function markLessonComplete() {
     if (!activeLesson || !selectedCourse) return;
+    if (authToken) void enrollmentApi.completeLesson(selectedCourse.id, activeLesson.id).catch(() => null);
     setCourses((items) =>
       items.map((course) => {
         if (course.id !== selectedCourse.id) return course;
@@ -134,11 +245,22 @@ export function useLearnifyApp() {
     );
   }
 
-  function saveCourse(event: React.FormEvent) {
+  async function saveCourse(event: React.FormEvent) {
     event.preventDefault();
     if (editingCourse) {
+      if (authToken) void courseApi.update(editingCourse.id, courseForm).catch(() => null);
       setCourses((items) => items.map((course) => (course.id === editingCourse.id ? ({ ...course, ...courseForm } as Course) : course)));
     } else {
+      if (authToken) {
+        try {
+          const response = await courseApi.create(courseForm);
+          setCourses((items) => [normalizeCourse(response.data), ...items]);
+          closeCourseModal();
+          return;
+        } catch (_error) {
+          // Keep local fallback below for offline demo.
+        }
+      }
       setCourses((items) => [
         {
           ...(courseForm as unknown as Course),
@@ -176,7 +298,9 @@ export function useLearnifyApp() {
     setCourseForm(emptyCourse());
   }
 
-  function addModule(courseId: string) {
+  async function addModule(courseId: string) {
+    const payload = { title: `Module ${(courses.find((course) => course.id === courseId)?.modules.length || 0) + 1}` };
+    if (authToken) void moduleApi.create(courseId, payload).then(() => loadRemoteData(role)).catch(() => null);
     setCourses((items) =>
       items.map((course) =>
         course.id === courseId
@@ -186,7 +310,15 @@ export function useLearnifyApp() {
     );
   }
 
-  function addLesson(courseId: string, moduleId: string) {
+  async function addLesson(courseId: string, moduleId: string) {
+    const payload = {
+      title: 'New Lesson',
+      type: 'article',
+      duration: 10,
+      description: 'Draft lesson material description.',
+      content: 'Write the lesson article content here.'
+    };
+    if (authToken) void lessonApi.create(moduleId, payload).then(() => loadRemoteData(role)).catch(() => null);
     setCourses((items) =>
       items.map((course) =>
         course.id === courseId
@@ -218,6 +350,7 @@ export function useLearnifyApp() {
   }
 
   function updateLesson(courseId: string, moduleId: string, lessonId: string, patch: Partial<Lesson>) {
+    if (authToken) void lessonApi.update(lessonId, patch).catch(() => null);
     setCourses((items) =>
       items.map((course) =>
         course.id === courseId
@@ -235,6 +368,7 @@ export function useLearnifyApp() {
   }
 
   function deleteLesson(courseId: string, moduleId: string, lessonId: string) {
+    if (authToken) void lessonApi.remove(lessonId).catch(() => null);
     setCourses((items) =>
       items.map((course) =>
         course.id === courseId
@@ -248,7 +382,13 @@ export function useLearnifyApp() {
   }
 
   function togglePublish(courseId: string) {
+    if (authToken) void courseApi.publish(courseId).catch(() => null);
     setCourses((items) => items.map((course) => (course.id === courseId ? { ...course, status: course.status === 'published' ? 'draft' : 'published' } : course)));
+  }
+
+  function deleteCourse(courseId: string) {
+    if (authToken) void courseApi.remove(courseId).catch(() => null);
+    setCourses((items) => items.filter((course) => course.id !== courseId));
   }
 
   function manageCourseContent(courseId: string) {
@@ -348,6 +488,7 @@ export function useLearnifyApp() {
       deleteLesson,
       updateLesson,
       togglePublish,
+      deleteCourse,
       manageCourseContent,
       login,
       logout,

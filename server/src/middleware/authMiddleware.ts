@@ -24,6 +24,21 @@ export async function protect(req, res, next) {
   }
 }
 
+export async function optionalProtect(req, _res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.split(' ')[1] : null;
+
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'learnify_dev_secret') as JwtPayload & { id: string };
+    req.user = await User.findById(decoded.id).select('-password');
+  } catch (_error) {
+    req.user = undefined;
+  }
+  next();
+}
+
 export function authorize(...roles) {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {

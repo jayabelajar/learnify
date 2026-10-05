@@ -7,14 +7,14 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 const makeSlug = (title) => `${slugify(title, { lower: true, strict: true })}-${Date.now().toString(36)}`;
 
-async function assertOwner(courseId, userId) {
+async function assertOwner(courseId, user) {
   const course = await Course.findById(courseId);
   if (!course) {
     const error = new Error('Course not found');
     error.statusCode = 404;
     throw error;
   }
-  if (course.instructor.toString() !== userId.toString()) {
+  if (user.role !== 'admin' && course.instructor.toString() !== user._id.toString()) {
     const error = new Error('You can only manage your own courses');
     error.statusCode = 403;
     throw error;
@@ -26,7 +26,9 @@ export const listCourses = asyncHandler(async (req, res) => {
   const { search = '', category, level, mine } = req.query;
   const filter: Record<string, unknown> = {};
 
-  if (req.user?.role === 'instructor' && mine === 'true') {
+  if (req.user?.role === 'admin') {
+    // Admin sees all courses.
+  } else if (req.user?.role === 'instructor' && mine === 'true') {
     filter.instructor = req.user._id;
   } else {
     filter.status = 'published';
@@ -54,12 +56,16 @@ export const getCourse = asyncHandler(async (req, res) => {
     throw new Error('Draft course is private');
   }
 
-  const modules = await Module.find({ course: course._id }).sort('order');
+  const modules = await Module.find({ course: course._id }).sort('order').lean();
   const moduleIds = modules.map((mod) => mod._id);
-  const lessons = await Lesson.find({ module: { $in: moduleIds } }).sort('order');
+  const lessons = await Lesson.find({ module: { $in: moduleIds } }).sort('order').lean();
+  const modulesWithLessons = modules.map((moduleDoc) => ({
+    ...moduleDoc,
+    lessons: lessons.filter((lesson) => lesson.module.toString() === moduleDoc._id.toString())
+  }));
   const lessonCount = lessons.length;
   const studentsCount = await Enrollment.countDocuments({ course: course._id });
-  res.json({ ...course.toObject(), modules, lessons, lessonCount, studentsCount });
+  res.json({ ...course.toObject(), modules: modulesWithLessons, lessons, lessonCount, studentsCount });
 });
 
 export const createCourse = asyncHandler(async (req, res) => {
@@ -73,7 +79,7 @@ export const createCourse = asyncHandler(async (req, res) => {
 });
 
 export const updateCourse = asyncHandler(async (req, res) => {
-  const course = await assertOwner(req.params.id, req.user._id);
+  const course = await assertOwner(req.params.id, req.user);
   Object.assign(course, req.body);
   if (req.body.title && req.body.title !== course.title) course.slug = makeSlug(req.body.title);
   await course.save();
@@ -81,7 +87,7 @@ export const updateCourse = asyncHandler(async (req, res) => {
 });
 
 export const deleteCourse = asyncHandler(async (req, res) => {
-  const course = await assertOwner(req.params.id, req.user._id);
+  const course = await assertOwner(req.params.id, req.user);
   const modules = await Module.find({ course: course._id });
   await Lesson.deleteMany({ module: { $in: modules.map((mod) => mod._id) } });
   await Module.deleteMany({ course: course._id });
@@ -91,7 +97,7 @@ export const deleteCourse = asyncHandler(async (req, res) => {
 });
 
 export const publishCourse = asyncHandler(async (req, res) => {
-  const course = await assertOwner(req.params.id, req.user._id);
+  const course = await assertOwner(req.params.id, req.user);
   course.status = course.status === 'published' ? 'draft' : 'published';
   await course.save();
   res.json(course);

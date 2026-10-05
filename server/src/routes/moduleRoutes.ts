@@ -5,9 +5,9 @@ import { authorize, protect } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-router.put('/:id', protect, authorize('instructor'), updateModule);
-router.delete('/:id', protect, authorize('instructor'), deleteModule);
+router.put('/:id', protect, authorize('instructor', 'admin'), updateModule);
+router.delete('/:id', protect, authorize('instructor', 'admin'), deleteModule);
 router.get('/:moduleId/lessons', listLessons);
-router.post('/:moduleId/lessons', protect, authorize('instructor'), createLesson);
+router.post('/:moduleId/lessons', protect, authorize('instructor', 'admin'), createLesson);
 
 export default router;
