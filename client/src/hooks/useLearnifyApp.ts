@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { seedCourses, seedQuizResults } from '../data/demoData';
+import { platformFallback } from '../data/platformData';
 import { roleProfiles } from '../data/users';
 import type { Course, Lesson, Quiz, Role, UserProfile } from '../types';
 import { buildSearchResults, emptyCourse, filterCourses, initialRole, initialRouteTab, initialTab, loginPathByRole, navForRole, pathForTab } from '../utils/app';
-import { authApi, courseApi, enrollmentApi, lessonApi, moduleApi, userApi } from '../services/api';
+import { authApi, courseApi, enrollmentApi, lessonApi, moduleApi, platformApi, userApi } from '../services/api';
 
 export type CourseForm = Partial<Course> & {
   title: string;
@@ -75,6 +76,103 @@ function normalizeCourse(course: any, enrolled = false, progress = 0): Course {
   };
 }
 
+function pickFallback<T>(items: any[], fallback: T[]): T[] {
+  return Array.isArray(items) && items.length ? (items as T[]) : fallback;
+}
+
+function formatDate(value: any) {
+  if (!value) return '-';
+  return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function normalizeCategories(items: any[], fallback: any[]) {
+  return pickFallback(items, fallback).map((item: any) => ({ id: item._id || item.id, name: item.name, description: item.description || '-', status: item.status || 'active' }));
+}
+
+function normalizeAssignments(items: any[], fallback: any[]) {
+  return pickFallback(items, fallback).map((item: any) => ({
+    id: item._id || item.id,
+    title: item.title,
+    courseTitle: item.course?.title || item.courseTitle || 'Course',
+    dueDate: formatDate(item.dueDate) || item.dueDate || '-',
+    status: item.status || 'draft',
+    points: item.points || 0
+  }));
+}
+
+function normalizeSubmissions(items: any[], fallback: any[]) {
+  return pickFallback(items, fallback).map((item: any) => ({
+    id: item._id || item.id,
+    studentName: item.student?.name || item.studentName || 'Student',
+    assignmentTitle: item.assignment?.title || item.assignmentTitle || 'Assignment',
+    courseTitle: item.assignment?.course?.title || item.courseTitle || 'Course',
+    status: item.status || 'submitted',
+    grade: item.grade ?? '-'
+  }));
+}
+
+function normalizeCertificates(items: any[], fallback: any[]) {
+  return pickFallback(items, fallback).map((item: any) => ({
+    id: item._id || item.id,
+    certificateId: item.certificateId,
+    studentName: item.student?.name || item.studentName || 'Student',
+    courseTitle: item.course?.title || item.courseTitle || 'Course',
+    issuedAt: formatDate(item.issuedAt) || item.issuedAt || '-',
+    status: item.status || 'issued'
+  }));
+}
+
+function normalizeDiscussions(items: any[], fallback: any[]) {
+  return pickFallback(items, fallback).map((item: any) => ({
+    id: item._id || item.id,
+    title: item.title,
+    courseTitle: item.course?.title || item.courseTitle || 'General',
+    authorName: item.author?.name || item.authorName || 'User',
+    replies: item.replies?.length ?? item.replies ?? 0,
+    status: item.status || 'open'
+  }));
+}
+
+function normalizeAnnouncements(items: any[], fallback: any[]) {
+  return pickFallback(items, fallback).map((item: any) => ({
+    id: item._id || item.id,
+    title: item.title,
+    audience: item.audience || 'all',
+    status: item.status || 'published',
+    publishedAt: formatDate(item.publishedAt) || item.publishedAt || '-'
+  }));
+}
+
+function normalizeReviews(items: any[], fallback: any[]) {
+  return pickFallback(items, fallback).map((item: any) => ({
+    id: item._id || item.id,
+    courseTitle: item.course?.title || item.courseTitle || 'Course',
+    studentName: item.student?.name || item.studentName || 'Student',
+    rating: item.rating || 0,
+    status: item.status || 'visible'
+  }));
+}
+
+function normalizeAuditLogs(items: any[], fallback: any[]) {
+  return pickFallback(items, fallback).map((item: any) => ({
+    id: item._id || item.id,
+    actorName: item.actor?.name || item.actorName || 'System',
+    action: item.action,
+    entity: item.entity,
+    createdAt: item.createdAt ? `${formatDate(item.createdAt)}` : item.createdAt || '-'
+  }));
+}
+
+function normalizeEnrollments(items: any[], fallback: any[]) {
+  return pickFallback(items, fallback).map((item: any) => ({
+    id: item._id || item.id,
+    studentName: item.student?.name || item.studentName || 'Student',
+    courseTitle: item.course?.title || item.courseTitle || 'Course',
+    progress: `${item.progress ?? String(item.progress || '0').replace('%', '')}%`,
+    status: item.status || 'in_progress'
+  }));
+}
+
 export function useLearnifyApp() {
   const startRole = initialRole();
   const [role, setRole] = useState<Role>(startRole);
@@ -87,6 +185,7 @@ export function useLearnifyApp() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [courses, setCourses] = useState<Course[]>(seedCourses as Course[]);
   const [users, setUsers] = useState<UserProfile[]>(Object.values(roleProfiles));
+  const [platform, setPlatform] = useState(platformFallback);
   const [profile, setProfile] = useState<UserProfile>(roleProfiles[startRole]);
   const [quizResults, setQuizResults] = useState(seedQuizResults);
   const [courseSearch, setCourseSearch] = useState('');
@@ -105,7 +204,7 @@ export function useLearnifyApp() {
   const [authToken, setAuthToken] = useState<string>(() => JSON.parse(localStorage.getItem(authStorageKey) || 'null')?.token || '');
 
   useEffect(() => {
-    if (window.location.pathname === '/') {
+    if (window.location.pathname === '/legacy-login') {
       window.history.replaceState({}, '', loginPathByRole[startRole]);
     }
   }, [startRole]);
@@ -137,8 +236,61 @@ export function useLearnifyApp() {
       setCourses(remoteCourses.length ? remoteCourses : (seedCourses as Course[]));
 
       if (nextRole === 'admin') {
-        const usersResponse = await userApi.list();
+        const [usersResponse, categories, assignments, submissions, certificates, discussions, announcements, reviews, auditLogs, enrollments] = await Promise.all([
+          userApi.list(),
+          platformApi.categories(),
+          platformApi.assignments().catch(() => ({ data: [] })),
+          platformApi.submissions().catch(() => ({ data: [] })),
+          platformApi.certificates().catch(() => ({ data: [] })),
+          platformApi.discussions().catch(() => ({ data: [] })),
+          platformApi.announcements().catch(() => ({ data: [] })),
+          platformApi.reviews().catch(() => ({ data: [] })),
+          platformApi.auditLogs().catch(() => ({ data: [] })),
+          enrollmentApi.list().catch(() => ({ data: [] }))
+        ]);
         setUsers(usersResponse.data.map(normalizeProfile));
+        setPlatform((items) => ({
+          ...items,
+          categories: normalizeCategories(categories.data, items.categories),
+          assignments: normalizeAssignments(assignments.data, items.assignments),
+          submissions: normalizeSubmissions(submissions.data, items.submissions),
+          certificates: normalizeCertificates(certificates.data, items.certificates),
+          discussions: normalizeDiscussions(discussions.data, items.discussions),
+          announcements: normalizeAnnouncements(announcements.data, items.announcements),
+          reviews: normalizeReviews(reviews.data, items.reviews),
+          auditLogs: normalizeAuditLogs(auditLogs.data, items.auditLogs),
+          enrollments: normalizeEnrollments(enrollments.data, items.enrollments)
+        }));
+      } else if (nextRole === 'instructor') {
+        const [assignments, submissions, discussions, announcements, certificates] = await Promise.all([
+          platformApi.assignments().catch(() => ({ data: [] })),
+          platformApi.submissions().catch(() => ({ data: [] })),
+          platformApi.discussions().catch(() => ({ data: [] })),
+          platformApi.announcements().catch(() => ({ data: [] })),
+          platformApi.certificates().catch(() => ({ data: [] }))
+        ]);
+        setPlatform((items) => ({
+          ...items,
+          assignments: normalizeAssignments(assignments.data, items.assignments),
+          submissions: normalizeSubmissions(submissions.data, items.submissions),
+          discussions: normalizeDiscussions(discussions.data, items.discussions),
+          announcements: normalizeAnnouncements(announcements.data, items.announcements),
+          certificates: normalizeCertificates(certificates.data, items.certificates)
+        }));
+      } else {
+        const [assignments, certificates, discussions, announcements] = await Promise.all([
+          platformApi.assignments().catch(() => ({ data: [] })),
+          platformApi.certificates().catch(() => ({ data: [] })),
+          platformApi.discussions().catch(() => ({ data: [] })),
+          platformApi.announcements().catch(() => ({ data: [] }))
+        ]);
+        setPlatform((items) => ({
+          ...items,
+          assignments: normalizeAssignments(assignments.data, items.assignments),
+          certificates: normalizeCertificates(certificates.data, items.certificates),
+          discussions: normalizeDiscussions(discussions.data, items.discussions),
+          announcements: normalizeAnnouncements(announcements.data, items.announcements)
+        }));
       }
     } catch (_error) {
       setCourses(seedCourses as Course[]);
@@ -433,6 +585,7 @@ export function useLearnifyApp() {
       globalSearch,
       courses,
       users,
+      platform,
       profile,
       quizResults,
       courseSearch,

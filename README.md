@@ -1,18 +1,21 @@
 # Learnify
 
-Learnify is a full-stack Learning Management System built with the MERN stack and TypeScript. It supports two main roles: students who enroll in courses and instructors who create learning content, quizzes, and analytics.
+Learnify is a full-stack online course platform built with the MERN stack and TypeScript. It supports students, instructors, and admins across the full learning workflow: landing page, course discovery, enrollment, lessons, assignments, quizzes, certificates, discussions, announcements, analytics, and platform administration.
 
 ## Features
 
-- Authentication with student and instructor roles
+- Authentication with student, instructor, and admin roles
 - Role-based route protection on the API
 - Course, module, and lesson management
 - Course catalog and enrollment flow
 - Learning page with lesson completion tracking
 - Progress calculation per enrollment
 - Multiple-choice quiz flow with backend grading
+- Assignment, submission, certificate, discussion, announcement, review, category, enrollment, and audit-log API modules
 - Student dashboard for learning progress and quiz results
 - Instructor dashboard for course performance and student analytics
+- Admin dashboard for users, courses, categories, enrollments, reports, roles, reviews, audit logs, and settings
+- Public React landing page based on `docs/ui-landing.html`
 - Responsive React UI based on role-specific LMS workflows
 
 ## Tech Stack

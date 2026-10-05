@@ -17,6 +17,14 @@ export const myCourses = asyncHandler(async (req, res) => {
   res.json(enrollments);
 });
 
+export const listEnrollments = asyncHandler(async (_req, res) => {
+  const enrollments = await Enrollment.find()
+    .populate('student', 'name email avatar')
+    .populate({ path: 'course', populate: { path: 'instructor', select: 'name email avatar' } })
+    .sort('-createdAt');
+  res.json(enrollments);
+});
+
 export const getEnrollment = asyncHandler(async (req, res) => {
   const enrollment = await Enrollment.findOne({ student: req.user._id, course: req.params.courseId }).populate('course');
   if (!enrollment) {

@@ -10,6 +10,8 @@ import { CourseManagement } from '../pages/instructor/CourseManagement';
 import { InstructorDashboard } from '../pages/instructor/InstructorDashboard';
 import { StudentsTable } from '../pages/instructor/StudentsTable';
 import { ProfilePage } from '../pages/profile/ProfilePage';
+import { LandingPage } from '../pages/public/LandingPage';
+import { PlatformResourcePage } from '../pages/platform/PlatformResourcePage';
 import { ExploreCourses } from '../pages/student/ExploreCourses';
 import { LessonPlayer } from '../pages/student/LessonPlayer';
 import { MyLearning } from '../pages/student/MyLearning';
@@ -22,11 +24,13 @@ type AppModel = ReturnType<typeof useLearnifyApp>;
 
 export function AppContent({ model }: { model: AppModel }) {
   const { state, actions } = model;
+  const p = state.platform;
 
   return (
     <>
       <main className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
+        <div className={state.activeTab === 'landing' ? '' : 'mx-auto max-w-7xl space-y-6 p-4 md:p-6'}>
+          {state.activeTab === 'landing' && <LandingPage courses={state.courses} onLogin={actions.goToLogin} />}
           {state.activeTab.startsWith('login-') && <LoginPage role={state.role} onLogin={actions.login} onSwitch={actions.goToLogin} />}
 
           {state.role === 'student' && state.activeTab === 'dashboard' && (
@@ -45,6 +49,21 @@ export function AppContent({ model }: { model: AppModel }) {
             <QuizView quiz={state.activeQuiz} answers={state.answers} index={state.questionIndex} onAnswer={(questionId, answer) => actions.setAnswers((items) => ({ ...items, [questionId]: answer }))} onIndex={actions.setQuestionIndex} onSubmit={actions.submitQuiz} />
           )}
           {state.role === 'student' && state.activeTab === 'quiz-results' && <QuizResults results={state.quizResults} />}
+          {state.role === 'student' && state.activeTab === 'assignments' && (
+            <PlatformResourcePage title="Assignments" description="Submit tugas course, pantau deadline, dan lihat status penilaian dari instructor." primaryAction="Submit Assignment" headers={['Assignment', 'Course', 'Due Date', 'Status', 'Points']} rows={p.assignments.map((item) => [item.title, item.courseTitle, item.dueDate, item.status, item.points])} stats={[['Assignments', p.assignments.length], ['Published', p.assignments.filter((item) => item.status === 'published').length], ['Open', p.assignments.filter((item) => item.status !== 'closed').length]]} />
+          )}
+          {state.role === 'student' && state.activeTab === 'certificates' && (
+            <PlatformResourcePage title="Certificates" description="Kumpulan sertifikat course yang sudah selesai dan siap diverifikasi." primaryAction="Verify Certificate" headers={['Certificate ID', 'Student', 'Course', 'Issued At', 'Status']} rows={p.certificates.map((item) => [item.certificateId, item.studentName, item.courseTitle, item.issuedAt, item.status])} />
+          )}
+          {state.role === 'student' && state.activeTab === 'calendar' && (
+            <PlatformResourcePage title="Calendar" description="Jadwal assignment, quiz, dan live session agar progres belajar tetap rapi." primaryAction="Add Reminder" headers={['Title', 'Date', 'Type', 'Status']} rows={p.calendar.map((item) => [item.title, item.date, item.type, item.status])} />
+          )}
+          {state.role === 'student' && state.activeTab === 'discussions' && (
+            <PlatformResourcePage title="Discussions" description="Forum diskusi course untuk tanya jawab dengan instructor dan sesama student." primaryAction="New Thread" headers={['Topic', 'Course', 'Author', 'Replies', 'Status']} rows={p.discussions.map((item) => [item.title, item.courseTitle, item.authorName, item.replies, item.status])} />
+          )}
+          {state.role === 'student' && state.activeTab === 'wishlist' && (
+            <PlatformResourcePage title="Wishlist" description="Course yang disimpan untuk dipelajari berikutnya." primaryAction="Browse More" headers={['Course', 'Category', 'Level', 'Price']} rows={p.wishlist.map((item) => [item.title, item.category, item.level, item.price])} />
+          )}
 
           {state.role === 'instructor' && state.activeTab === 'dashboard' && <InstructorDashboard courses={state.courses} />}
           {state.role === 'instructor' && state.activeTab === 'courses' && (
@@ -63,12 +82,45 @@ export function AppContent({ model }: { model: AppModel }) {
             <ContentBuilder courses={state.courses} selectedCourse={state.selectedBuilderCourse} onSelectCourse={actions.setSelectedCourseId} onAddModule={actions.addModule} onAddLesson={actions.addLesson} onUpdateLesson={actions.updateLesson} onDeleteLesson={actions.deleteLesson} />
           )}
           {state.role === 'instructor' && state.activeTab === 'students' && <StudentsTable />}
+          {state.role === 'instructor' && state.activeTab === 'assignments' && (
+            <PlatformResourcePage title="Assignments" description="Buat dan publish assignment untuk course yang kamu kelola." headers={['Assignment', 'Course', 'Due Date', 'Status', 'Points']} rows={p.assignments.map((item) => [item.title, item.courseTitle, item.dueDate, item.status, item.points])} />
+          )}
+          {state.role === 'instructor' && state.activeTab === 'quiz-bank' && (
+            <PlatformResourcePage title="Quiz Bank" description="Kelola bank quiz dan passing score untuk assessment tiap course." primaryAction="Create Quiz" headers={['Quiz', 'Course', 'Questions', 'Passing Score', 'Status']} rows={p.quizzes.map((item) => [item.title, item.courseTitle, item.questions, item.passingScore, item.status])} />
+          )}
+          {state.role === 'instructor' && state.activeTab === 'submissions' && (
+            <PlatformResourcePage title="Submissions" description="Review submission student, beri grade, dan feedback." primaryAction="Review Queue" headers={['Student', 'Assignment', 'Course', 'Status', 'Grade']} rows={p.submissions.map((item) => [item.studentName, item.assignmentTitle, item.courseTitle, item.status, item.grade])} />
+          )}
+          {state.role === 'instructor' && state.activeTab === 'discussions' && (
+            <PlatformResourcePage title="Discussions" description="Pantau pertanyaan student dan diskusi course yang kamu ajar." primaryAction="Answer Thread" headers={['Topic', 'Course', 'Author', 'Replies', 'Status']} rows={p.discussions.map((item) => [item.title, item.courseTitle, item.authorName, item.replies, item.status])} />
+          )}
+          {state.role === 'instructor' && state.activeTab === 'announcements' && (
+            <PlatformResourcePage title="Announcements" description="Kirim announcement untuk student course atau semua audience yang relevan." primaryAction="Create Announcement" headers={['Title', 'Audience', 'Status', 'Published At']} rows={p.announcements.map((item) => [item.title, item.audience, item.status, item.publishedAt])} />
+          )}
           {state.role === 'instructor' && state.activeTab === 'analytics' && <AnalyticsPage courses={state.courses} />}
 
           {state.role === 'admin' && state.activeTab === 'dashboard' && <AdminDashboard users={state.users} courses={state.courses} />}
           {state.role === 'admin' && state.activeTab === 'users' && <AdminUsers users={state.users} onUsers={actions.setUsers} />}
           {state.role === 'admin' && state.activeTab === 'courses' && <AdminCourses courses={state.courses} />}
+          {state.role === 'admin' && state.activeTab === 'categories' && (
+            <PlatformResourcePage title="Categories" description="Kelola kategori katalog agar course discovery lebih rapi." headers={['Category', 'Description', 'Status']} rows={p.categories.map((item) => [item.name, item.description, item.status])} />
+          )}
+          {state.role === 'admin' && state.activeTab === 'enrollments' && (
+            <PlatformResourcePage title="Enrollments" description="Pantau enrollment seluruh student dan progres course di platform." primaryAction="Export Report" headers={['Student', 'Course', 'Progress', 'Status']} rows={p.enrollments.map((item) => [item.studentName, item.courseTitle, item.progress, item.status])} />
+          )}
           {state.role === 'admin' && state.activeTab === 'reports' && <AnalyticsPage courses={state.courses} />}
+          {state.role === 'admin' && state.activeTab === 'roles' && (
+            <PlatformResourcePage title="Roles & Permissions" description="Dokumentasi role access control untuk student, instructor, dan admin." primaryAction="Review Policy" headers={['Role', 'Permissions', 'Users']} rows={p.roles.map((item) => [item.name, item.permissions, item.users])} />
+          )}
+          {state.role === 'admin' && state.activeTab === 'announcements' && (
+            <PlatformResourcePage title="Announcements" description="Kelola pengumuman global untuk student dan instructor." headers={['Title', 'Audience', 'Status', 'Published At']} rows={p.announcements.map((item) => [item.title, item.audience, item.status, item.publishedAt])} />
+          )}
+          {state.role === 'admin' && state.activeTab === 'reviews' && (
+            <PlatformResourcePage title="Reviews" description="Moderasi ulasan course agar kualitas katalog tetap terjaga." primaryAction="Moderate" headers={['Course', 'Student', 'Rating', 'Status']} rows={p.reviews.map((item) => [item.courseTitle, item.studentName, item.rating, item.status])} />
+          )}
+          {state.role === 'admin' && state.activeTab === 'audit-logs' && (
+            <PlatformResourcePage title="Audit Logs" description="Jejak aktivitas penting untuk kebutuhan keamanan dan monitoring admin." primaryAction="Export Logs" headers={['Actor', 'Action', 'Entity', 'Created At']} rows={p.auditLogs.map((item) => [item.actorName, item.action, item.entity, item.createdAt])} />
+          )}
           {state.role === 'admin' && state.activeTab === 'settings' && <AdminSettings />}
 
           {state.activeTab === 'profile' && <ProfilePage profile={state.profile} onSave={actions.saveProfile} />}

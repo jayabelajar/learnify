@@ -38,6 +38,7 @@ export const lessonApi = {
 };
 
 export const enrollmentApi = {
+  list: () => api.get('/enrollments'),
   myCourses: () => api.get('/enrollments/my-courses'),
   enroll: (courseId) => api.post(`/courses/${courseId}/enroll`),
   completeLesson: (courseId, lessonId) => api.patch(`/enrollments/${courseId}/lessons/${lessonId}/complete`)
@@ -47,4 +48,15 @@ export const userApi = {
   list: () => api.get('/users'),
   update: (id, payload) => api.put(`/users/${id}`, payload),
   remove: (id) => api.delete(`/users/${id}`)
+};
+
+export const platformApi = {
+  categories: () => api.get('/platform/categories'),
+  assignments: () => api.get('/platform/assignments'),
+  submissions: () => api.get('/platform/submissions'),
+  certificates: () => api.get('/platform/certificates'),
+  discussions: () => api.get('/platform/discussions'),
+  announcements: () => api.get('/platform/announcements'),
+  reviews: () => api.get('/platform/reviews'),
+  auditLogs: () => api.get('/platform/audit-logs')
 };

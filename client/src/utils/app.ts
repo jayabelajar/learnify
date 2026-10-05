@@ -14,6 +14,7 @@ export function navForRole(role: Role) {
 }
 
 export function pathForTab(role: Role, tab: string) {
+  if (tab === 'landing') return '/';
   if (tab.startsWith('login-')) return loginPathByRole[role];
   if (tab === 'lesson-player') return '/course-detail';
   if (tab === 'quiz-view') return '/quiz';
@@ -38,7 +39,8 @@ export function initialTab(role: Role) {
 
 export function initialRouteTab(role: Role) {
   const path = window.location.pathname;
-  if (path === '/' || path.startsWith('/login/')) return `login-${role}`;
+  if (path === '/') return 'landing';
+  if (path.startsWith('/login/')) return `login-${role}`;
   return navForRole(role).find((item) => item.path === path)?.id || initialTab(role);
 }
 
