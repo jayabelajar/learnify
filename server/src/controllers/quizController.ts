@@ -2,6 +2,7 @@ import Course from '../models/Course.js';
 import Enrollment from '../models/Enrollment.js';
 import Quiz from '../models/Quiz.js';
 import QuizAttempt from '../models/QuizAttempt.js';
+import { gradeQuizAttempt, sanitizeQuiz } from '../services/quizService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 async function assertCourseOwner(courseId, userId) {
@@ -14,11 +15,6 @@ async function assertCourseOwner(courseId, userId) {
   }
   return course;
 }
-
-const sanitizeQuiz = (quiz) => ({
-  ...quiz.toObject(),
-  questions: quiz.questions.map(({ _id, question, options, points }) => ({ _id, question, options, points }))
-});
 
 export const createQuiz = asyncHandler(async (req, res) => {
   await assertCourseOwner(req.params.courseId, req.user._id);
@@ -74,31 +70,11 @@ export const startQuiz = asyncHandler(async (req, res) => {
 
 export const submitQuiz = asyncHandler(async (req, res) => {
   const quiz = await Quiz.findById(req.params.id);
-  const answers = req.body.answers || [];
-  let pointsEarned = 0;
-  const totalPoints = quiz.questions.reduce((sum, q) => sum + q.points, 0);
-  let correctAnswers = 0;
-
-  const normalizedAnswers = quiz.questions.map((question) => {
-    const found = answers.find((item) => item.question?.toString() === question._id.toString());
-    const answer = Number(found?.answer);
-    const isCorrect = answer === question.correctAnswer;
-    if (isCorrect) {
-      pointsEarned += question.points;
-      correctAnswers += 1;
-    }
-    return { question: question._id, answer };
-  });
-
-  const score = totalPoints ? Math.round((pointsEarned / totalPoints) * 100) : 0;
+  const result = gradeQuizAttempt(quiz, req.body.answers || []);
   const attempt = await QuizAttempt.create({
     quiz: quiz._id,
     student: req.user._id,
-    answers: normalizedAnswers,
-    score,
-    correctAnswers,
-    incorrectAnswers: quiz.questions.length - correctAnswers,
-    passed: score >= quiz.passingScore,
+    ...result,
     submittedAt: new Date()
   });
 

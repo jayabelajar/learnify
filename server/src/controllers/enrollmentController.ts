@@ -1,18 +1,6 @@
 import Enrollment from '../models/Enrollment.js';
-import Lesson from '../models/Lesson.js';
-import Module from '../models/Module.js';
+import { recomputeEnrollmentProgress } from '../services/enrollmentService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-
-async function recomputeProgress(enrollment) {
-  const modules = await Module.find({ course: enrollment.course }).select('_id');
-  const totalLessons = await Lesson.countDocuments({ module: { $in: modules.map((mod) => mod._id) } });
-  const completed = enrollment.completedLessons.length;
-  enrollment.progress = totalLessons ? Math.round((completed / totalLessons) * 100) : 0;
-  enrollment.status = enrollment.progress === 100 ? 'completed' : enrollment.progress > 0 ? 'in_progress' : 'not_started';
-  enrollment.completedAt = enrollment.progress === 100 ? new Date() : undefined;
-  await enrollment.save();
-  return enrollment;
-}
 
 export const enrollCourse = asyncHandler(async (req, res) => {
   const enrollment = await Enrollment.create({
@@ -46,6 +34,6 @@ export const completeLesson = asyncHandler(async (req, res) => {
   }
   const exists = enrollment.completedLessons.some((lessonId) => lessonId.toString() === req.params.lessonId);
   if (!exists) enrollment.completedLessons.push(req.params.lessonId);
-  const updated = await recomputeProgress(enrollment);
+  const updated = await recomputeEnrollmentProgress(enrollment);
   res.json(updated);
 });
