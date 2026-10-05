@@ -1,4 +1,3 @@
-import { initialTab } from '../utils/app';
 import { CourseModal } from '../components/course/CourseModal';
 import { AdminCourses } from '../pages/admin/AdminCourses';
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
@@ -28,12 +27,12 @@ export function AppContent({ model }: { model: AppModel }) {
     <>
       <main className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
-          {state.activeTab.startsWith('login-') && <LoginPage role={state.role} onLogin={() => actions.navigate(initialTab(state.role))} onSwitch={actions.goToLogin} />}
+          {state.activeTab.startsWith('login-') && <LoginPage role={state.role} onLogin={actions.login} onSwitch={actions.goToLogin} />}
 
-          {state.role === 'student' && state.activeTab === 'student-dashboard' && (
-            <StudentDashboard kpis={state.studentKpis} courses={state.enrolledCourses} quizResults={state.quizResults} onExplore={() => actions.navigate('explore')} onOpenLesson={actions.openLesson} />
+          {state.role === 'student' && state.activeTab === 'dashboard' && (
+            <StudentDashboard kpis={state.studentKpis} courses={state.enrolledCourses} quizResults={state.quizResults} onExplore={() => actions.navigate('explore-courses')} onOpenLesson={actions.openLesson} />
           )}
-          {state.role === 'student' && state.activeTab === 'explore' && (
+          {state.role === 'student' && state.activeTab === 'explore-courses' && (
             <ExploreCourses courses={state.filteredExploreCourses} search={state.courseSearch} category={state.category} level={state.level} onSearch={actions.setCourseSearch} onCategory={actions.setCategory} onLevel={actions.setLevel} onEnroll={actions.toggleEnrollment} onOpenLesson={actions.openLesson} />
           )}
           {state.role === 'student' && state.activeTab === 'my-learning' && (
@@ -47,8 +46,8 @@ export function AppContent({ model }: { model: AppModel }) {
           )}
           {state.role === 'student' && state.activeTab === 'quiz-results' && <QuizResults results={state.quizResults} />}
 
-          {state.role === 'instructor' && state.activeTab === 'instructor-dashboard' && <InstructorDashboard courses={state.courses} />}
-          {state.role === 'instructor' && state.activeTab === 'course-mgmt' && (
+          {state.role === 'instructor' && state.activeTab === 'dashboard' && <InstructorDashboard courses={state.courses} />}
+          {state.role === 'instructor' && state.activeTab === 'courses' && (
             <CourseManagement
               courses={state.courses.filter((course) => course.title.toLowerCase().includes(state.courseSearch.toLowerCase()))}
               search={state.courseSearch}
@@ -60,17 +59,17 @@ export function AppContent({ model }: { model: AppModel }) {
               onManage={actions.manageCourseContent}
             />
           )}
-          {state.role === 'instructor' && state.activeTab === 'content-builder' && (
-            <ContentBuilder courses={state.courses} selectedCourse={state.selectedBuilderCourse} onSelectCourse={actions.setSelectedCourseId} onAddModule={actions.addModule} onAddLesson={actions.addLesson} onDeleteLesson={actions.deleteLesson} />
+          {state.role === 'instructor' && state.activeTab === 'course-builder' && (
+            <ContentBuilder courses={state.courses} selectedCourse={state.selectedBuilderCourse} onSelectCourse={actions.setSelectedCourseId} onAddModule={actions.addModule} onAddLesson={actions.addLesson} onUpdateLesson={actions.updateLesson} onDeleteLesson={actions.deleteLesson} />
           )}
           {state.role === 'instructor' && state.activeTab === 'students' && <StudentsTable />}
           {state.role === 'instructor' && state.activeTab === 'analytics' && <AnalyticsPage courses={state.courses} />}
 
-          {state.role === 'admin' && state.activeTab === 'admin-dashboard' && <AdminDashboard users={state.users} courses={state.courses} />}
-          {state.role === 'admin' && state.activeTab === 'admin-users' && <AdminUsers users={state.users} onUsers={actions.setUsers} />}
-          {state.role === 'admin' && state.activeTab === 'admin-courses' && <AdminCourses courses={state.courses} />}
-          {state.role === 'admin' && state.activeTab === 'admin-reports' && <AnalyticsPage courses={state.courses} />}
-          {state.role === 'admin' && state.activeTab === 'admin-settings' && <AdminSettings />}
+          {state.role === 'admin' && state.activeTab === 'dashboard' && <AdminDashboard users={state.users} courses={state.courses} />}
+          {state.role === 'admin' && state.activeTab === 'users' && <AdminUsers users={state.users} onUsers={actions.setUsers} />}
+          {state.role === 'admin' && state.activeTab === 'courses' && <AdminCourses courses={state.courses} />}
+          {state.role === 'admin' && state.activeTab === 'reports' && <AnalyticsPage courses={state.courses} />}
+          {state.role === 'admin' && state.activeTab === 'settings' && <AdminSettings />}
 
           {state.activeTab === 'profile' && <ProfilePage profile={state.profile} onSave={actions.saveProfile} />}
         </div>

@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { seedCourses, seedQuizResults } from '../data/demoData';
-import { adminNav, instructorNav, studentNav } from '../data/navigation';
 import { roleProfiles } from '../data/users';
 import type { Course, Lesson, Quiz, Role, UserProfile } from '../types';
-import { buildSearchResults, emptyCourse, filterCourses, initialRole, initialTab } from '../utils/app';
+import { buildSearchResults, emptyCourse, filterCourses, initialRole, initialRouteTab, initialTab, loginPathByRole, navForRole, pathForTab } from '../utils/app';
 
 export type CourseForm = Partial<Course> & {
   title: string;
@@ -18,7 +17,7 @@ export type CourseForm = Partial<Course> & {
 export function useLearnifyApp() {
   const startRole = initialRole();
   const [role, setRole] = useState<Role>(startRole);
-  const [activeTab, setActiveTab] = useState(initialTab(startRole));
+  const [activeTab, setActiveTab] = useState(initialRouteTab(startRole));
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -43,7 +42,13 @@ export function useLearnifyApp() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [courseForm, setCourseForm] = useState<CourseForm>(emptyCourse());
 
-  const navItems = role === 'student' ? studentNav : role === 'instructor' ? instructorNav : adminNav;
+  useEffect(() => {
+    if (window.location.pathname === '/') {
+      window.history.replaceState({}, '', loginPathByRole[startRole]);
+    }
+  }, [startRole]);
+
+  const navItems = navForRole(role);
   const enrolledCourses = courses.filter((course) => course.isEnrolled);
   const allLessons = courses.flatMap((course) => course.modules.flatMap((module) => module.lessons));
   const completedLessons = allLessons.filter((lesson) => lesson.completed).length;
@@ -65,17 +70,33 @@ export function useLearnifyApp() {
   };
 
   function goToLogin(nextRole: Role) {
-    window.history.pushState({}, '', `/login/${nextRole}`);
+    window.history.pushState({}, '', loginPathByRole[nextRole]);
     setRole(nextRole);
-    setActiveTab(initialTab(nextRole));
+    setActiveTab(`login-${nextRole}`);
     setProfile(roleProfiles[nextRole]);
     setMobileSidebarOpen(false);
   }
 
   function navigate(tab: string) {
+    window.history.pushState({}, '', pathForTab(role, tab));
     setActiveTab(tab);
     setMobileSidebarOpen(false);
     setSearchOpen(false);
+  }
+
+  function login(nextRole: Role = role) {
+    const nextTab = initialTab(nextRole);
+    window.history.pushState({}, '', pathForTab(nextRole, nextTab));
+    setRole(nextRole);
+    setProfile(roleProfiles[nextRole]);
+    setActiveTab(nextTab);
+    setMobileSidebarOpen(false);
+    setSearchOpen(false);
+  }
+
+  function logout() {
+    goToLogin(role);
+    setProfileOpen(false);
   }
 
   function saveProfile(nextProfile: UserProfile) {
@@ -91,7 +112,7 @@ export function useLearnifyApp() {
     const firstLesson = lesson || course.modules.flatMap((module) => module.lessons)[0];
     setSelectedCourse(course);
     setActiveLesson(firstLesson);
-    setActiveTab('lesson-player');
+    navigate('lesson-player');
   }
 
   function markLessonComplete() {
@@ -180,13 +201,31 @@ export function useLearnifyApp() {
                         {
                           id: crypto.randomUUID(),
                           title: `New Lesson ${module.lessons.length + 1}`,
-                          type: 'text',
+                          type: 'article',
                           duration: 10,
                           completed: false,
-                          description: 'Draft lesson material description.'
+                          description: 'Draft lesson material description.',
+                          content: 'Write the lesson article content here.'
                         }
                       ]
                     }
+                  : module
+              )
+            }
+          : course
+      )
+    );
+  }
+
+  function updateLesson(courseId: string, moduleId: string, lessonId: string, patch: Partial<Lesson>) {
+    setCourses((items) =>
+      items.map((course) =>
+        course.id === courseId
+          ? {
+              ...course,
+              modules: course.modules.map((module) =>
+                module.id === moduleId
+                  ? { ...module, lessons: module.lessons.map((lesson) => (lesson.id === lessonId ? { ...lesson, ...patch } : lesson)) }
                   : module
               )
             }
@@ -214,14 +253,14 @@ export function useLearnifyApp() {
 
   function manageCourseContent(courseId: string) {
     setSelectedCourseId(courseId);
-    navigate('content-builder');
+    navigate('course-builder');
   }
 
   function startQuiz(quiz: Quiz, course: Course) {
     setActiveQuiz({ ...quiz, courseTitle: course.title });
     setAnswers({});
     setQuestionIndex(0);
-    setActiveTab('quiz-view');
+    navigate('quiz-view');
   }
 
   function submitQuiz() {
@@ -239,7 +278,7 @@ export function useLearnifyApp() {
       },
       ...items
     ]);
-    setActiveTab('quiz-results');
+    navigate('quiz-results');
   }
 
   return {
@@ -307,8 +346,11 @@ export function useLearnifyApp() {
       addModule,
       addLesson,
       deleteLesson,
+      updateLesson,
       togglePublish,
       manageCourseContent,
+      login,
+      logout,
       startQuiz,
       submitQuiz
     }

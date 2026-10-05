@@ -1,18 +1,20 @@
-import { X } from 'lucide-react';
-import type { NavItem, Role } from '../../types';
+import { LogOut, X } from 'lucide-react';
+import type { NavItem, Role, UserProfile } from '../../types';
 import { Brand } from '../common/Brand';
 
 type SidebarProps = {
   role: Role;
+  profile: UserProfile;
   items: NavItem[];
   activeTab: string;
   open: boolean;
   mobileOpen: boolean;
   onNavigate: (tab: string) => void;
   onCloseMobile: () => void;
+  onLogout: () => void;
 };
 
-export function Sidebar({ role, items, activeTab, open, mobileOpen, onNavigate, onCloseMobile }: SidebarProps) {
+export function Sidebar({ role, profile, items, activeTab, open, mobileOpen, onNavigate, onCloseMobile, onLogout }: SidebarProps) {
   return (
     <aside
       className={`fixed inset-y-0 left-0 z-40 flex border-r border-slate-200 bg-white transition-all duration-200 ${
@@ -46,9 +48,15 @@ export function Sidebar({ role, items, activeTab, open, mobileOpen, onNavigate, 
           })}
         </nav>
         <div className="shrink-0 border-t border-slate-100 p-3">
-          <div className={`rounded-xl bg-slate-50 p-3 text-xs text-slate-500 ${!open ? 'lg:hidden' : ''}`}>
-            <p className="font-semibold capitalize text-slate-800">{role} workspace</p>
-            <p className="mt-1">Role-based LMS navigation</p>
+          <div className={`flex items-center gap-3 rounded-lg bg-slate-50 p-3 ${!open ? 'lg:justify-center' : ''}`}>
+            <img className="h-10 w-10 rounded-full object-cover" src={profile.avatar} alt={profile.name} />
+            <div className={`min-w-0 flex-1 ${!open ? 'lg:hidden' : ''}`}>
+              <p className="truncate text-sm font-bold text-slate-800">{profile.name}</p>
+              <p className="truncate text-xs text-slate-500">{profile.email}</p>
+            </div>
+            <button className={`rounded-lg p-2 text-rose-600 hover:bg-rose-50 ${!open ? 'lg:hidden' : ''}`} onClick={onLogout} aria-label="Logout" title="Logout">
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>

@@ -13,10 +13,14 @@ export type UserProfile = {
 export type Lesson = {
   id: string;
   title: string;
-  type: 'video' | 'text' | 'pdf';
+  type: 'article' | 'video' | 'quiz' | 'submission';
   duration: number;
   completed: boolean;
   description: string;
+  content?: string;
+  videoUrl?: string;
+  submissionInstructions?: string;
+  quiz?: Quiz;
 };
 
 export type Quiz = {
@@ -60,6 +64,7 @@ export type NavItem = {
   id: string;
   label: string;
   icon: LucideIcon;
+  path: string;
 };
 
 export type SearchResult = {

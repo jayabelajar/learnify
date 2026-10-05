@@ -6,9 +6,10 @@ type ProfileMenuProps = {
   profile: UserProfile;
   onNavigate: (tab: string) => void;
   onLoginAs: (role: Role) => void;
+  onLogout: () => void;
 };
 
-export function ProfileMenu({ profile, onNavigate, onLoginAs }: ProfileMenuProps) {
+export function ProfileMenu({ profile, onNavigate, onLoginAs, onLogout }: ProfileMenuProps) {
   return (
     <FloatingPanel className="right-3 top-16 w-[min(320px,calc(100vw-24px))]">
       <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
@@ -23,7 +24,7 @@ export function ProfileMenu({ profile, onNavigate, onLoginAs }: ProfileMenuProps
         <button className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold hover:bg-slate-50" onClick={() => onNavigate('profile')}>
           <Edit3 className="h-4 w-4" /> Edit Profile
         </button>
-        <button className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50">
+        <button className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50" onClick={onLogout}>
           <LogOut className="h-4 w-4" /> Logout
         </button>
       </div>

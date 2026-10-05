@@ -5,7 +5,7 @@ import { Input } from '../../components/common/FormControls';
 
 type LoginPageProps = {
   role: Role;
-  onLogin: () => void;
+  onLogin: (role: Role) => void;
   onSwitch: (role: Role) => void;
 };
 
@@ -22,7 +22,7 @@ export function LoginPage({ role, onLogin, onSwitch }: LoginPageProps) {
         <div className="mt-6 grid gap-4">
           <Input label="Email" value={roleProfiles[role].email} onChange={() => null} />
           <Input label="Password" type="password" value="password123" onChange={() => null} />
-          <button className="rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700" onClick={onLogin}>
+          <button className="rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700" onClick={() => onLogin(role)}>
             Login as {role}
           </button>
         </div>

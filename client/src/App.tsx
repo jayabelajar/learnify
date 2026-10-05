@@ -6,18 +6,29 @@ import { useLearnifyApp } from './hooks/useLearnifyApp';
 function App() {
   const model = useLearnifyApp();
   const { state, actions } = model;
+  const isLoginPage = state.activeTab.startsWith('login-');
+
+  if (isLoginPage) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900">
+        <AppContent model={model} />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen overflow-hidden bg-slate-50 text-slate-900">
-      <Sidebar
-        role={state.role}
-        items={state.navItems}
-        activeTab={state.activeTab}
-        open={state.sidebarOpen}
-        mobileOpen={state.mobileSidebarOpen}
-        onNavigate={actions.navigate}
-        onCloseMobile={() => actions.setMobileSidebarOpen(false)}
-      />
+        <Sidebar
+          role={state.role}
+          profile={state.profile}
+          items={state.navItems}
+          activeTab={state.activeTab}
+          open={state.sidebarOpen}
+          mobileOpen={state.mobileSidebarOpen}
+          onNavigate={actions.navigate}
+          onCloseMobile={() => actions.setMobileSidebarOpen(false)}
+          onLogout={actions.logout}
+        />
       {state.mobileSidebarOpen && <button className="fixed inset-0 z-30 bg-slate-950/40 lg:hidden" onClick={() => actions.setMobileSidebarOpen(false)} aria-label="Close sidebar" />}
 
       <div className={`flex h-screen min-w-0 flex-col transition-all duration-200 ${state.sidebarOpen ? 'lg:pl-72' : 'lg:pl-20'}`}>
@@ -44,6 +55,7 @@ function App() {
           }}
           onNavigate={actions.navigate}
           onLoginAs={actions.goToLogin}
+          onLogout={actions.logout}
         />
         <AppContent model={model} />
       </div>

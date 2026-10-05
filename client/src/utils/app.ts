@@ -1,16 +1,45 @@
 import type { Course, NavItem, Role } from '../types';
+import { adminNav, instructorNav, studentNav } from '../data/navigation';
 
-export function initialRole(): Role {
-  const path = window.location.pathname;
-  if (path.includes('/login/admin') || path.includes('/admin')) return 'admin';
-  if (path.includes('/login/instructor') || path.includes('/instructor')) return 'instructor';
+export const loginPathByRole: Record<Role, string> = {
+  student: '/login/student',
+  instructor: '/login/instructor',
+  admin: '/login/admin'
+};
+
+export function navForRole(role: Role) {
+  if (role === 'admin') return adminNav;
+  if (role === 'instructor') return instructorNav;
+  return studentNav;
+}
+
+export function pathForTab(role: Role, tab: string) {
+  if (tab.startsWith('login-')) return loginPathByRole[role];
+  if (tab === 'lesson-player') return '/course-detail';
+  if (tab === 'quiz-view') return '/quiz';
+  return navForRole(role).find((item) => item.id === tab)?.path || '/dashboard';
+}
+
+export function roleFromPath(path = window.location.pathname): Role {
+  if (path.includes('/login/admin')) return 'admin';
+  if (path.includes('/login/instructor')) return 'instructor';
+  if (path.includes('/admin')) return 'admin';
+  if (path.includes('/instructor')) return 'instructor';
   return 'student';
 }
 
+export function initialRole(): Role {
+  return roleFromPath();
+}
+
 export function initialTab(role: Role) {
-  if (role === 'admin') return 'admin-dashboard';
-  if (role === 'instructor') return 'instructor-dashboard';
-  return 'student-dashboard';
+  return navForRole(role)[0].id;
+}
+
+export function initialRouteTab(role: Role) {
+  const path = window.location.pathname;
+  if (path === '/' || path.startsWith('/login/')) return `login-${role}`;
+  return navForRole(role).find((item) => item.path === path)?.id || initialTab(role);
 }
 
 export function filterCourses(courses: Course[], search: string, category: string, level: string) {
@@ -42,7 +71,7 @@ export function buildSearchResults(courses: Course[], navItems: NavItem[], role:
     ...courses
       .filter((course) => `${course.title} ${course.category} ${course.instructor}`.toLowerCase().includes(query))
       .slice(0, 4)
-      .map((course) => ({ id: course.id, title: course.title, type: 'Course', target: role === 'student' ? 'explore' : 'course-mgmt' })),
+      .map((course) => ({ id: course.id, title: course.title, type: 'Course', target: role === 'student' ? 'explore-courses' : 'courses' })),
     ...navItems
       .filter((item) => item.label.toLowerCase().includes(query))
       .slice(0, 3)

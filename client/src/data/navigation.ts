@@ -14,27 +14,27 @@ import {
 import type { NavItem } from '../types';
 
 export const studentNav: NavItem[] = [
-  { id: 'student-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'explore', label: 'Explore Courses', icon: Compass },
-  { id: 'my-learning', label: 'My Learning', icon: BookOpen },
-  { id: 'quiz-results', label: 'Quiz Results', icon: Award },
-  { id: 'profile', label: 'Profile', icon: User }
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { id: 'explore-courses', label: 'Explore Courses', icon: Compass, path: '/explore-courses' },
+  { id: 'my-learning', label: 'My Learning', icon: BookOpen, path: '/my-learning' },
+  { id: 'quiz-results', label: 'Quiz Results', icon: Award, path: '/quiz-results' },
+  { id: 'profile', label: 'Profile', icon: User, path: '/profile' }
 ];
 
 export const instructorNav: NavItem[] = [
-  { id: 'instructor-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'course-mgmt', label: 'Courses', icon: FolderKanban },
-  { id: 'content-builder', label: 'Course Content', icon: LibraryBig },
-  { id: 'students', label: 'Students', icon: Users },
-  { id: 'analytics', label: 'Analytics', icon: AreaChartIcon },
-  { id: 'profile', label: 'Profile', icon: User }
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { id: 'courses', label: 'Courses', icon: FolderKanban, path: '/courses' },
+  { id: 'course-builder', label: 'Course Builder', icon: LibraryBig, path: '/course-builder' },
+  { id: 'students', label: 'Students', icon: Users, path: '/students' },
+  { id: 'analytics', label: 'Analytics', icon: AreaChartIcon, path: '/analytics' },
+  { id: 'profile', label: 'Profile', icon: User, path: '/profile' }
 ];
 
 export const adminNav: NavItem[] = [
-  { id: 'admin-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'admin-users', label: 'Users', icon: Users },
-  { id: 'admin-courses', label: 'Courses', icon: LibraryBig },
-  { id: 'admin-reports', label: 'Reports', icon: Activity },
-  { id: 'admin-settings', label: 'Settings', icon: Settings },
-  { id: 'profile', label: 'Profile', icon: User }
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { id: 'users', label: 'Users', icon: Users, path: '/users' },
+  { id: 'courses', label: 'Courses', icon: LibraryBig, path: '/courses' },
+  { id: 'reports', label: 'Reports', icon: Activity, path: '/reports' },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
+  { id: 'profile', label: 'Profile', icon: User, path: '/profile' }
 ];

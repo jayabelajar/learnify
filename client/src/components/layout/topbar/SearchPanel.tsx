@@ -16,13 +16,13 @@ export function SearchPanel({ role, search, searchResults, onSearch, onNavigate 
       id: 'learning',
       title: role === 'student' ? 'My Learning' : 'Courses',
       type: 'Menu',
-      target: role === 'student' ? 'my-learning' : role === 'admin' ? 'admin-users' : 'course-mgmt'
+      target: role === 'student' ? 'my-learning' : role === 'admin' ? 'users' : 'courses'
     },
     {
       id: 'analytics',
       title: role === 'student' ? 'Quiz Results' : 'Analytics',
       type: 'Menu',
-      target: role === 'student' ? 'quiz-results' : role === 'admin' ? 'admin-reports' : 'analytics'
+      target: role === 'student' ? 'quiz-results' : role === 'admin' ? 'reports' : 'analytics'
     }
   ];
 

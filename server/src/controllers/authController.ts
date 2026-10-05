@@ -33,11 +33,21 @@ export const register = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(422);
+    throw new Error(errors.array()[0].msg);
+  }
+
+  const { email, password, role } = req.body;
   const user = await User.findOne({ email });
   if (!user || !(await (user as any).matchPassword(password))) {
     res.status(401);
     throw new Error('Invalid email or password');
+  }
+  if (role && user.role !== role) {
+    res.status(403);
+    throw new Error(`This account is not registered as ${role}`);
   }
 
   res.json(authPayload(user));
