@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import dns from 'node:dns';
 import Course from './models/Course.js';
 import Enrollment from './models/Enrollment.js';
 import Lesson from './models/Lesson.js';
@@ -19,6 +20,10 @@ const avatars = {
 async function main() {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error('MONGODB_URI is required for seeding');
+
+  if (process.env.MONGODB_DNS_SERVERS) {
+    dns.setServers(process.env.MONGODB_DNS_SERVERS.split(',').map((server) => server.trim()));
+  }
 
   await mongoose.connect(uri, { dbName: process.env.MONGODB_DB_NAME || 'learnify' });
 
