@@ -173,6 +173,17 @@ function normalizeEnrollments(items: any[], fallback: any[]) {
   }));
 }
 
+function normalizeQuizzes(items: any[], fallback: any[]) {
+  return pickFallback(items, fallback).map((item: any) => ({
+    id: item._id || item.id,
+    title: item.title,
+    courseTitle: item.course?.title || item.courseTitle || 'Course',
+    questions: item.questions?.length ?? item.questions ?? 0,
+    passingScore: `${String(item.passingScore || '75').replace('%', '')}%`,
+    status: item.status || 'published'
+  }));
+}
+
 export function useLearnifyApp() {
   const startRole = initialRole();
   const [role, setRole] = useState<Role>(startRole);
@@ -236,7 +247,7 @@ export function useLearnifyApp() {
       setCourses(remoteCourses.length ? remoteCourses : (seedCourses as Course[]));
 
       if (nextRole === 'admin') {
-        const [usersResponse, categories, assignments, submissions, certificates, discussions, announcements, reviews, auditLogs, enrollments] = await Promise.all([
+        const [usersResponse, categories, assignments, submissions, certificates, discussions, announcements, reviews, auditLogs, quizzes, enrollments] = await Promise.all([
           userApi.list(),
           platformApi.categories(),
           platformApi.assignments().catch(() => ({ data: [] })),
@@ -246,6 +257,7 @@ export function useLearnifyApp() {
           platformApi.announcements().catch(() => ({ data: [] })),
           platformApi.reviews().catch(() => ({ data: [] })),
           platformApi.auditLogs().catch(() => ({ data: [] })),
+          platformApi.quizzes().catch(() => ({ data: [] })),
           enrollmentApi.list().catch(() => ({ data: [] }))
         ]);
         setUsers(usersResponse.data.map(normalizeProfile));
@@ -259,15 +271,17 @@ export function useLearnifyApp() {
           announcements: normalizeAnnouncements(announcements.data, items.announcements),
           reviews: normalizeReviews(reviews.data, items.reviews),
           auditLogs: normalizeAuditLogs(auditLogs.data, items.auditLogs),
+          quizzes: normalizeQuizzes(quizzes.data, items.quizzes),
           enrollments: normalizeEnrollments(enrollments.data, items.enrollments)
         }));
       } else if (nextRole === 'instructor') {
-        const [assignments, submissions, discussions, announcements, certificates] = await Promise.all([
+        const [assignments, submissions, discussions, announcements, certificates, quizzes] = await Promise.all([
           platformApi.assignments().catch(() => ({ data: [] })),
           platformApi.submissions().catch(() => ({ data: [] })),
           platformApi.discussions().catch(() => ({ data: [] })),
           platformApi.announcements().catch(() => ({ data: [] })),
-          platformApi.certificates().catch(() => ({ data: [] }))
+          platformApi.certificates().catch(() => ({ data: [] })),
+          platformApi.quizzes().catch(() => ({ data: [] }))
         ]);
         setPlatform((items) => ({
           ...items,
@@ -275,7 +289,8 @@ export function useLearnifyApp() {
           submissions: normalizeSubmissions(submissions.data, items.submissions),
           discussions: normalizeDiscussions(discussions.data, items.discussions),
           announcements: normalizeAnnouncements(announcements.data, items.announcements),
-          certificates: normalizeCertificates(certificates.data, items.certificates)
+          certificates: normalizeCertificates(certificates.data, items.certificates),
+          quizzes: normalizeQuizzes(quizzes.data, items.quizzes)
         }));
       } else {
         const [assignments, certificates, discussions, announcements] = await Promise.all([
@@ -573,6 +588,81 @@ export function useLearnifyApp() {
     navigate('quiz-results');
   }
 
+  async function createAssignment(payload: any) {
+    const course = courses[0];
+    const nextPayload = { course: payload.course || course?.id, ...payload };
+    if (authToken) await platformApi.createAssignment(nextPayload).then(() => loadRemoteData(role)).catch(() => null);
+    setPlatform((items) => ({
+      ...items,
+      assignments: [
+        { id: crypto.randomUUID(), title: payload.title, courseTitle: course?.title || 'Course', dueDate: payload.dueDate || '-', status: payload.status || 'published', points: Number(payload.points || 100) },
+        ...items.assignments
+      ]
+    }));
+  }
+
+  async function submitAssignment(payload: any) {
+    const assignment = platform.assignments[0];
+    if (authToken && assignment?.id) await platformApi.createSubmission({ assignment: payload.assignment || assignment.id, content: payload.content }).then(() => loadRemoteData(role)).catch(() => null);
+    setPlatform((items) => ({
+      ...items,
+      submissions: [
+        { id: crypto.randomUUID(), studentName: profile.name, assignmentTitle: assignment?.title || 'Assignment', courseTitle: assignment?.courseTitle || 'Course', status: 'submitted', grade: '-' },
+        ...items.submissions
+      ]
+    }));
+  }
+
+  async function reviewSubmission(id: string, grade = 100, feedback = 'Reviewed from instructor console.') {
+    if (authToken) await platformApi.reviewSubmission(id, { grade, feedback }).then(() => loadRemoteData(role)).catch(() => null);
+    setPlatform((items) => ({
+      ...items,
+      submissions: items.submissions.map((item) => (item.id === id ? { ...item, grade, status: 'reviewed' } : item))
+    }));
+  }
+
+  async function createQuiz(payload: any) {
+    const course = courses[0];
+    const quiz = {
+      title: payload.title,
+      description: payload.description || '',
+      passingScore: Number(payload.passingScore || 75),
+      questions: [
+        {
+          question: payload.question || 'Sample question?',
+          options: [payload.optionA || 'Option A', payload.optionB || 'Option B', payload.optionC || 'Option C', payload.optionD || 'Option D'],
+          correctAnswer: Number(payload.correctAnswer || 0),
+          points: 1
+        }
+      ]
+    };
+    if (authToken && course?.id) await platformApi.createQuiz(course.id, quiz).then(() => loadRemoteData(role)).catch(() => null);
+    setPlatform((items) => ({
+      ...items,
+      quizzes: [{ id: crypto.randomUUID(), title: quiz.title, courseTitle: course?.title || 'Course', questions: quiz.questions.length, passingScore: `${quiz.passingScore}%`, status: 'published' }, ...items.quizzes]
+    }));
+  }
+
+  async function createCategory(payload: any) {
+    if (authToken) await platformApi.createCategory(payload).then(() => loadRemoteData(role)).catch(() => null);
+    setPlatform((items) => ({ ...items, categories: [{ id: crypto.randomUUID(), name: payload.name, description: payload.description || '-', status: 'active' }, ...items.categories] }));
+  }
+
+  async function createAnnouncement(payload: any) {
+    if (authToken) await platformApi.createAnnouncement(payload).then(() => loadRemoteData(role)).catch(() => null);
+    setPlatform((items) => ({ ...items, announcements: [{ id: crypto.randomUUID(), title: payload.title, audience: payload.audience || 'all', status: 'published', publishedAt: 'Just now' }, ...items.announcements] }));
+  }
+
+  async function moderateReview(id: string) {
+    if (authToken) await platformApi.moderateReview(id, { status: 'hidden' }).then(() => loadRemoteData(role)).catch(() => null);
+    setPlatform((items) => ({ ...items, reviews: items.reviews.map((item) => (item.id === id ? { ...item, status: 'hidden' } : item)) }));
+  }
+
+  async function deleteAuditLog(id: string) {
+    if (authToken) await platformApi.deleteAuditLog(id).then(() => loadRemoteData(role)).catch(() => null);
+    setPlatform((items) => ({ ...items, auditLogs: items.auditLogs.filter((item) => item.id !== id) }));
+  }
+
   return {
     state: {
       role,
@@ -646,7 +736,16 @@ export function useLearnifyApp() {
       login,
       logout,
       startQuiz,
-      submitQuiz
+      submitQuiz,
+      createAssignment,
+      submitAssignment,
+      reviewSubmission,
+      createQuiz,
+      createCategory,
+      createAnnouncement,
+      moderateReview,
+      deleteAuditLog,
+      reloadData: loadRemoteData
     }
   };
 }

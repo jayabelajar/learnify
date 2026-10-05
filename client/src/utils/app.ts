@@ -18,7 +18,8 @@ export function pathForTab(role: Role, tab: string) {
   if (tab.startsWith('login-')) return loginPathByRole[role];
   if (tab === 'lesson-player') return '/course-detail';
   if (tab === 'quiz-view') return '/quiz';
-  return navForRole(role).find((item) => item.id === tab)?.path || '/dashboard';
+  const path = navForRole(role).find((item) => item.id === tab)?.path || '/dashboard';
+  return `/${role}${path}`;
 }
 
 export function roleFromPath(path = window.location.pathname): Role {
@@ -26,6 +27,7 @@ export function roleFromPath(path = window.location.pathname): Role {
   if (path.includes('/login/instructor')) return 'instructor';
   if (path.includes('/admin')) return 'admin';
   if (path.includes('/instructor')) return 'instructor';
+  if (path.includes('/student')) return 'student';
   return 'student';
 }
 
@@ -41,7 +43,9 @@ export function initialRouteTab(role: Role) {
   const path = window.location.pathname;
   if (path === '/') return 'landing';
   if (path.startsWith('/login/')) return `login-${role}`;
-  return navForRole(role).find((item) => item.path === path)?.id || initialTab(role);
+  const rolePrefix = `/${role}`;
+  const localPath = path.startsWith(rolePrefix) ? path.slice(rolePrefix.length) || '/dashboard' : path;
+  return navForRole(role).find((item) => item.path === localPath || item.path === path)?.id || initialTab(role);
 }
 
 export function filterCourses(courses: Course[], search: string, category: string, level: string) {

@@ -50,7 +50,7 @@ export function AppContent({ model }: { model: AppModel }) {
           )}
           {state.role === 'student' && state.activeTab === 'quiz-results' && <QuizResults results={state.quizResults} />}
           {state.role === 'student' && state.activeTab === 'assignments' && (
-            <PlatformResourcePage title="Assignments" description="Submit tugas course, pantau deadline, dan lihat status penilaian dari instructor." primaryAction="Submit Assignment" headers={['Assignment', 'Course', 'Due Date', 'Status', 'Points']} rows={p.assignments.map((item) => [item.title, item.courseTitle, item.dueDate, item.status, item.points])} stats={[['Assignments', p.assignments.length], ['Published', p.assignments.filter((item) => item.status === 'published').length], ['Open', p.assignments.filter((item) => item.status !== 'closed').length]]} />
+            <PlatformResourcePage title="Assignments" description="Submit tugas course, pantau deadline, dan lihat status penilaian dari instructor." primaryAction="Submit Assignment" headers={['Assignment', 'Course', 'Due Date', 'Status', 'Points']} rows={p.assignments.map((item) => [item.title, item.courseTitle, item.dueDate, item.status, item.points])} stats={[['Assignments', p.assignments.length], ['Published', p.assignments.filter((item) => item.status === 'published').length], ['Open', p.assignments.filter((item) => item.status !== 'closed').length]]} formFields={[{ name: 'content', label: 'Submission Link / Notes', type: 'textarea', placeholder: 'Paste GitHub link, Drive link, or answer notes' }]} onCreate={actions.submitAssignment} />
           )}
           {state.role === 'student' && state.activeTab === 'certificates' && (
             <PlatformResourcePage title="Certificates" description="Kumpulan sertifikat course yang sudah selesai dan siap diverifikasi." primaryAction="Verify Certificate" headers={['Certificate ID', 'Student', 'Course', 'Issued At', 'Status']} rows={p.certificates.map((item) => [item.certificateId, item.studentName, item.courseTitle, item.issuedAt, item.status])} />
@@ -83,19 +83,19 @@ export function AppContent({ model }: { model: AppModel }) {
           )}
           {state.role === 'instructor' && state.activeTab === 'students' && <StudentsTable />}
           {state.role === 'instructor' && state.activeTab === 'assignments' && (
-            <PlatformResourcePage title="Assignments" description="Buat dan publish assignment untuk course yang kamu kelola." headers={['Assignment', 'Course', 'Due Date', 'Status', 'Points']} rows={p.assignments.map((item) => [item.title, item.courseTitle, item.dueDate, item.status, item.points])} />
+            <PlatformResourcePage title="Assignments" description="Buat dan publish assignment untuk course yang kamu kelola." headers={['Assignment', 'Course', 'Due Date', 'Status', 'Points']} rows={p.assignments.map((item) => [item.title, item.courseTitle, item.dueDate, item.status, item.points])} formFields={[{ name: 'title', label: 'Title' }, { name: 'dueDate', label: 'Due Date', type: 'date' }, { name: 'points', label: 'Points', type: 'number' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} onCreate={actions.createAssignment} />
           )}
           {state.role === 'instructor' && state.activeTab === 'quiz-bank' && (
-            <PlatformResourcePage title="Quiz Bank" description="Kelola bank quiz dan passing score untuk assessment tiap course." primaryAction="Create Quiz" headers={['Quiz', 'Course', 'Questions', 'Passing Score', 'Status']} rows={p.quizzes.map((item) => [item.title, item.courseTitle, item.questions, item.passingScore, item.status])} />
+            <PlatformResourcePage title="Quiz Bank" description="Kelola bank quiz dan passing score untuk assessment tiap course." primaryAction="Create Quiz" headers={['Quiz', 'Course', 'Questions', 'Passing Score', 'Status']} rows={p.quizzes.map((item) => [item.title, item.courseTitle, item.questions, item.passingScore, item.status])} formFields={[{ name: 'title', label: 'Quiz Title' }, { name: 'passingScore', label: 'Passing Score', type: 'number' }, { name: 'question', label: 'Question' }, { name: 'optionA', label: 'Option A' }, { name: 'optionB', label: 'Option B' }, { name: 'optionC', label: 'Option C' }, { name: 'optionD', label: 'Option D' }]} onCreate={actions.createQuiz} />
           )}
           {state.role === 'instructor' && state.activeTab === 'submissions' && (
-            <PlatformResourcePage title="Submissions" description="Review submission student, beri grade, dan feedback." primaryAction="Review Queue" headers={['Student', 'Assignment', 'Course', 'Status', 'Grade']} rows={p.submissions.map((item) => [item.studentName, item.assignmentTitle, item.courseTitle, item.status, item.grade])} />
+            <PlatformResourcePage title="Submissions" description="Review submission student, beri grade, dan feedback." primaryAction="Review Queue" headers={['Student', 'Assignment', 'Course', 'Status', 'Grade']} rows={p.submissions.map((item) => [item.studentName, item.assignmentTitle, item.courseTitle, item.status, item.grade])} rowActions={[{ label: 'Mark Reviewed', onClick: (index) => actions.reviewSubmission(p.submissions[index].id, 100) }]} />
           )}
           {state.role === 'instructor' && state.activeTab === 'discussions' && (
             <PlatformResourcePage title="Discussions" description="Pantau pertanyaan student dan diskusi course yang kamu ajar." primaryAction="Answer Thread" headers={['Topic', 'Course', 'Author', 'Replies', 'Status']} rows={p.discussions.map((item) => [item.title, item.courseTitle, item.authorName, item.replies, item.status])} />
           )}
           {state.role === 'instructor' && state.activeTab === 'announcements' && (
-            <PlatformResourcePage title="Announcements" description="Kirim announcement untuk student course atau semua audience yang relevan." primaryAction="Create Announcement" headers={['Title', 'Audience', 'Status', 'Published At']} rows={p.announcements.map((item) => [item.title, item.audience, item.status, item.publishedAt])} />
+            <PlatformResourcePage title="Announcements" description="Kirim announcement untuk student course atau semua audience yang relevan." primaryAction="Create Announcement" headers={['Title', 'Audience', 'Status', 'Published At']} rows={p.announcements.map((item) => [item.title, item.audience, item.status, item.publishedAt])} formFields={[{ name: 'title', label: 'Title' }, { name: 'audience', label: 'Audience', placeholder: 'student, instructor, or all' }, { name: 'body', label: 'Body', type: 'textarea' }]} onCreate={actions.createAnnouncement} />
           )}
           {state.role === 'instructor' && state.activeTab === 'analytics' && <AnalyticsPage courses={state.courses} />}
 
@@ -103,7 +103,7 @@ export function AppContent({ model }: { model: AppModel }) {
           {state.role === 'admin' && state.activeTab === 'users' && <AdminUsers users={state.users} onUsers={actions.setUsers} />}
           {state.role === 'admin' && state.activeTab === 'courses' && <AdminCourses courses={state.courses} />}
           {state.role === 'admin' && state.activeTab === 'categories' && (
-            <PlatformResourcePage title="Categories" description="Kelola kategori katalog agar course discovery lebih rapi." headers={['Category', 'Description', 'Status']} rows={p.categories.map((item) => [item.name, item.description, item.status])} />
+            <PlatformResourcePage title="Categories" description="Kelola kategori katalog agar course discovery lebih rapi." headers={['Category', 'Description', 'Status']} rows={p.categories.map((item) => [item.name, item.description, item.status])} formFields={[{ name: 'name', label: 'Category Name' }, { name: 'description', label: 'Description', type: 'textarea' }]} onCreate={actions.createCategory} />
           )}
           {state.role === 'admin' && state.activeTab === 'enrollments' && (
             <PlatformResourcePage title="Enrollments" description="Pantau enrollment seluruh student dan progres course di platform." primaryAction="Export Report" headers={['Student', 'Course', 'Progress', 'Status']} rows={p.enrollments.map((item) => [item.studentName, item.courseTitle, item.progress, item.status])} />
@@ -113,13 +113,13 @@ export function AppContent({ model }: { model: AppModel }) {
             <PlatformResourcePage title="Roles & Permissions" description="Dokumentasi role access control untuk student, instructor, dan admin." primaryAction="Review Policy" headers={['Role', 'Permissions', 'Users']} rows={p.roles.map((item) => [item.name, item.permissions, item.users])} />
           )}
           {state.role === 'admin' && state.activeTab === 'announcements' && (
-            <PlatformResourcePage title="Announcements" description="Kelola pengumuman global untuk student dan instructor." headers={['Title', 'Audience', 'Status', 'Published At']} rows={p.announcements.map((item) => [item.title, item.audience, item.status, item.publishedAt])} />
+            <PlatformResourcePage title="Announcements" description="Kelola pengumuman global untuk student dan instructor." headers={['Title', 'Audience', 'Status', 'Published At']} rows={p.announcements.map((item) => [item.title, item.audience, item.status, item.publishedAt])} formFields={[{ name: 'title', label: 'Title' }, { name: 'audience', label: 'Audience', placeholder: 'student, instructor, or all' }, { name: 'body', label: 'Body', type: 'textarea' }]} onCreate={actions.createAnnouncement} />
           )}
           {state.role === 'admin' && state.activeTab === 'reviews' && (
-            <PlatformResourcePage title="Reviews" description="Moderasi ulasan course agar kualitas katalog tetap terjaga." primaryAction="Moderate" headers={['Course', 'Student', 'Rating', 'Status']} rows={p.reviews.map((item) => [item.courseTitle, item.studentName, item.rating, item.status])} />
+            <PlatformResourcePage title="Reviews" description="Moderasi ulasan course agar kualitas katalog tetap terjaga." primaryAction="Moderate" headers={['Course', 'Student', 'Rating', 'Status']} rows={p.reviews.map((item) => [item.courseTitle, item.studentName, item.rating, item.status])} rowActions={[{ label: 'Hide', onClick: (index) => actions.moderateReview(p.reviews[index].id), danger: true }]} />
           )}
           {state.role === 'admin' && state.activeTab === 'audit-logs' && (
-            <PlatformResourcePage title="Audit Logs" description="Jejak aktivitas penting untuk kebutuhan keamanan dan monitoring admin." primaryAction="Export Logs" headers={['Actor', 'Action', 'Entity', 'Created At']} rows={p.auditLogs.map((item) => [item.actorName, item.action, item.entity, item.createdAt])} />
+            <PlatformResourcePage title="Audit Logs" description="Jejak aktivitas penting untuk kebutuhan keamanan dan monitoring admin." primaryAction="Export Logs" headers={['Actor', 'Action', 'Entity', 'Created At']} rows={p.auditLogs.map((item) => [item.actorName, item.action, item.entity, item.createdAt])} rowActions={[{ label: 'Delete', onClick: (index) => actions.deleteAuditLog(p.auditLogs[index].id), danger: true }]} />
           )}
           {state.role === 'admin' && state.activeTab === 'settings' && <AdminSettings />}
 

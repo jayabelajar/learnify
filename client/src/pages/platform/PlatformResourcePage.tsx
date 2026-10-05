@@ -12,10 +12,15 @@ type PlatformResourcePageProps = {
   headers: string[];
   rows: Array<Array<string | number>>;
   stats?: Array<[string, string | number]>;
+  formFields?: Array<{ name: string; label: string; type?: string; placeholder?: string }>;
+  onCreate?: (payload: Record<string, string>) => void | Promise<void>;
+  rowActions?: Array<{ label: string; onClick: (rowIndex: number) => void | Promise<void>; danger?: boolean }>;
 };
 
-export function PlatformResourcePage({ title, description, primaryAction = 'Create', headers, rows, stats = [] }: PlatformResourcePageProps) {
+export function PlatformResourcePage({ title, description, primaryAction = 'Create', headers, rows, stats = [], formFields = [], onCreate, rowActions = [] }: PlatformResourcePageProps) {
   const [query, setQuery] = useState('');
+  const [formOpen, setFormOpen] = useState(false);
+  const [form, setForm] = useState<Record<string, string>>({});
   const filteredRows = useMemo(() => {
     if (!query.trim()) return rows;
     return rows.filter((row) => row.join(' ').toLowerCase().includes(query.toLowerCase()));
@@ -38,12 +43,56 @@ export function PlatformResourcePage({ title, description, primaryAction = 'Crea
             <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">{description}</p>
           </div>
-          <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">
+          <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700" onClick={() => setFormOpen((value) => !value)}>
             <Plus className="h-4 w-4" />
             {primaryAction}
           </button>
         </div>
       </Panel>
+
+      {formOpen && formFields.length > 0 && (
+        <Panel title={primaryAction}>
+          <form
+            className="grid gap-3 md:grid-cols-2"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              await onCreate?.(form);
+              setForm({});
+              setFormOpen(false);
+            }}
+          >
+            {formFields.map((field) => (
+              <label key={field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+                <span className="text-xs font-semibold text-slate-500">{field.label}</span>
+                {field.type === 'textarea' ? (
+                  <textarea
+                    className="mt-1 min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-50"
+                    placeholder={field.placeholder}
+                    value={form[field.name] || ''}
+                    onChange={(event) => setForm((items) => ({ ...items, [field.name]: event.target.value }))}
+                  />
+                ) : (
+                  <input
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-50"
+                    type={field.type || 'text'}
+                    placeholder={field.placeholder}
+                    value={form[field.name] || ''}
+                    onChange={(event) => setForm((items) => ({ ...items, [field.name]: event.target.value }))}
+                  />
+                )}
+              </label>
+            ))}
+            <div className="flex justify-end gap-2 md:col-span-2">
+              <button type="button" className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600" onClick={() => setFormOpen(false)}>
+                Cancel
+              </button>
+              <button className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+                Save
+              </button>
+            </div>
+          </form>
+        </Panel>
+      )}
 
       <KpiGrid cards={cards as any} />
 
@@ -59,7 +108,42 @@ export function PlatformResourcePage({ title, description, primaryAction = 'Crea
         </div>
       </Panel>
 
-      <DataTable title={`${title} List`} headers={headers} rows={filteredRows} />
+      {rowActions.length ? (
+        <Panel title={`${title} List`}>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="border-b border-slate-200 text-xs uppercase text-slate-400">
+                <tr>
+                  {headers.map((header) => (
+                    <th key={header} className="py-3">{header}</th>
+                  ))}
+                  <th className="py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredRows.map((row, index) => (
+                  <tr key={index}>
+                    {row.map((cell, cellIndex) => (
+                      <td key={cellIndex} className="py-4 text-slate-700 first:font-semibold">{cell}</td>
+                    ))}
+                    <td className="py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        {rowActions.map((action) => (
+                          <button key={action.label} className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${action.danger ? 'bg-rose-50 text-rose-700 hover:bg-rose-100' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`} onClick={() => action.onClick(rows.indexOf(row))}>
+                            {action.label}
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      ) : (
+        <DataTable title={`${title} List`} headers={headers} rows={filteredRows} />
+      )}
     </section>
   );
 }

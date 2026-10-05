@@ -35,6 +35,26 @@ export const createCategory = asyncHandler(async (req, res) => {
   res.status(201).json(category);
 });
 
+export const updateCategory = asyncHandler(async (req, res) => {
+  const category = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  if (!category) {
+    res.status(404);
+    throw new Error('Category not found');
+  }
+  await writeAudit(req, 'update', 'Category', { id: category._id, name: category.name });
+  res.json(category);
+});
+
+export const deleteCategory = asyncHandler(async (req, res) => {
+  const category = await Category.findByIdAndDelete(req.params.id);
+  if (!category) {
+    res.status(404);
+    throw new Error('Category not found');
+  }
+  await writeAudit(req, 'delete', 'Category', { id: category._id, name: category.name });
+  res.json({ message: 'Category deleted' });
+});
+
 export const listAssignments = asyncHandler(async (req, res) => {
   const filter: Record<string, unknown> = {};
   if (req.user.role === 'instructor') filter.course = { $in: await instructorCourseIds(req.user._id) };
@@ -56,6 +76,40 @@ export const createAssignment = asyncHandler(async (req, res) => {
   const assignment = await Assignment.create(req.body);
   await writeAudit(req, 'create', 'Assignment', { id: assignment._id, course: assignment.course });
   res.status(201).json(assignment);
+});
+
+export const updateAssignment = asyncHandler(async (req, res) => {
+  const assignment = await Assignment.findById(req.params.id);
+  if (!assignment) {
+    res.status(404);
+    throw new Error('Assignment not found');
+  }
+  const course = await Course.findById(assignment.course);
+  if (req.user.role !== 'admin' && course?.instructor.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('You can only update assignments for your own courses');
+  }
+  Object.assign(assignment, req.body);
+  await assignment.save();
+  await writeAudit(req, 'update', 'Assignment', { id: assignment._id });
+  res.json(assignment);
+});
+
+export const deleteAssignment = asyncHandler(async (req, res) => {
+  const assignment = await Assignment.findById(req.params.id);
+  if (!assignment) {
+    res.status(404);
+    throw new Error('Assignment not found');
+  }
+  const course = await Course.findById(assignment.course);
+  if (req.user.role !== 'admin' && course?.instructor.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('You can only delete assignments for your own courses');
+  }
+  await Submission.deleteMany({ assignment: assignment._id });
+  await assignment.deleteOne();
+  await writeAudit(req, 'delete', 'Assignment', { id: assignment._id });
+  res.json({ message: 'Assignment deleted' });
 });
 
 export const listSubmissions = asyncHandler(async (req, res) => {
@@ -133,9 +187,39 @@ export const createAnnouncement = asyncHandler(async (req, res) => {
   res.status(201).json(announcement);
 });
 
+export const updateAnnouncement = asyncHandler(async (req, res) => {
+  const announcement = await Announcement.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  if (!announcement) {
+    res.status(404);
+    throw new Error('Announcement not found');
+  }
+  await writeAudit(req, 'update', 'Announcement', { id: announcement._id });
+  res.json(announcement);
+});
+
+export const deleteAnnouncement = asyncHandler(async (req, res) => {
+  const announcement = await Announcement.findByIdAndDelete(req.params.id);
+  if (!announcement) {
+    res.status(404);
+    throw new Error('Announcement not found');
+  }
+  await writeAudit(req, 'delete', 'Announcement', { id: announcement._id });
+  res.json({ message: 'Announcement deleted' });
+});
+
 export const listReviews = asyncHandler(async (_req, res) => {
   const reviews = await Review.find().populate('student', 'name avatar').populate('course', 'title').sort('-createdAt');
   res.json(reviews);
+});
+
+export const moderateReview = asyncHandler(async (req, res) => {
+  const review = await Review.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  if (!review) {
+    res.status(404);
+    throw new Error('Review not found');
+  }
+  await writeAudit(req, 'moderate', 'Review', { id: review._id, status: review.status });
+  res.json(review);
 });
 
 export const createReview = asyncHandler(async (req, res) => {
@@ -146,4 +230,13 @@ export const createReview = asyncHandler(async (req, res) => {
 
 export const listAuditLogs = asyncHandler(async (_req, res) => {
   res.json(await AuditLog.find().populate('actor', 'name email role').sort('-createdAt').limit(100));
+});
+
+export const deleteAuditLog = asyncHandler(async (req, res) => {
+  const log = await AuditLog.findByIdAndDelete(req.params.id);
+  if (!log) {
+    res.status(404);
+    throw new Error('Audit log not found');
+  }
+  res.json({ message: 'Audit log deleted' });
 });

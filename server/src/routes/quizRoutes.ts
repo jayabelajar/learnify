@@ -3,6 +3,7 @@ import {
   deleteQuiz,
   getAttempt,
   getQuiz,
+  listQuizzes,
   quizAttempts,
   startQuiz,
   submitQuiz,
@@ -13,6 +14,7 @@ import { authorize, protect } from '../middleware/authMiddleware.js';
 const router = Router();
 
 router.get('/attempts/:id', protect, getAttempt);
+router.get('/', protect, authorize('instructor', 'admin'), listQuizzes);
 router.get('/:id', protect, getQuiz);
 router.put('/:id', protect, authorize('instructor'), updateQuiz);
 router.delete('/:id', protect, authorize('instructor'), deleteQuiz);

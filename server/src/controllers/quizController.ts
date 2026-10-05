@@ -22,6 +22,16 @@ export const createQuiz = asyncHandler(async (req, res) => {
   res.status(201).json(quiz);
 });
 
+export const listQuizzes = asyncHandler(async (req, res) => {
+  const filter: Record<string, unknown> = {};
+  if (req.user.role === 'instructor') {
+    const courses = await Course.find({ instructor: req.user._id }).select('_id');
+    filter.course = { $in: courses.map((course) => course._id) };
+  }
+  const quizzes = await Quiz.find(filter).populate('course', 'title category instructor').sort('-createdAt');
+  res.json(quizzes);
+});
+
 export const getQuiz = asyncHandler(async (req, res) => {
   const quiz = await Quiz.findById(req.params.id);
   if (!quiz) {
@@ -39,7 +49,7 @@ export const updateQuiz = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Quiz not found');
   }
-  await assertCourseOwner(quiz.course, req.user._id);
+  if (req.user.role !== 'admin') await assertCourseOwner(quiz.course, req.user._id);
   Object.assign(quiz, req.body);
   await quiz.save();
   res.json(quiz);
@@ -51,7 +61,7 @@ export const deleteQuiz = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Quiz not found');
   }
-  await assertCourseOwner(quiz.course, req.user._id);
+  if (req.user.role !== 'admin') await assertCourseOwner(quiz.course, req.user._id);
   await QuizAttempt.deleteMany({ quiz: quiz._id });
   await quiz.deleteOne();
   res.json({ message: 'Quiz deleted' });
