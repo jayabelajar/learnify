@@ -4,7 +4,7 @@ import { platformFallback } from '../data/platformData';
 import { roleProfiles } from '../data/users';
 import type { Course, Lesson, Quiz, Role, UserProfile } from '../types';
 import { buildSearchResults, emptyCourse, filterCourses, initialRole, initialRouteTab, initialTab, loginPathByRole, navForRole, pathForTab } from '../utils/app';
-import { authApi, courseApi, enrollmentApi, lessonApi, moduleApi, platformApi, userApi } from '../services/api';
+import { authApi, courseApi, enrollmentApi, lessonApi, moduleApi, platformApi, uploadApi, userApi } from '../services/api';
 
 export type CourseForm = Partial<Course> & {
   title: string;
@@ -207,6 +207,9 @@ export function useLearnifyApp() {
   const [selectedCourse, setSelectedCourse] = useState<Course>(seedCourses[0] as Course);
   const [activeLesson, setActiveLesson] = useState<Lesson>(seedCourses[0].modules[0].lessons[0] as Lesson);
   const [activeQuiz, setActiveQuiz] = useState<(Quiz & { courseTitle: string }) | null>(null);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
+  const [selectedCertificateId, setSelectedCertificateId] = useState('');
+  const [selectedQuizId, setSelectedQuizId] = useState('');
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [questionIndex, setQuestionIndex] = useState(0);
   const [showCourseModal, setShowCourseModal] = useState(false);
@@ -368,6 +371,25 @@ export function useLearnifyApp() {
     setSearchOpen(false);
   }
 
+  async function register(nextRole: Role, payload: { name: string; email: string; password: string }) {
+    const nextTab = initialTab(nextRole);
+    try {
+      const response = await authApi.register({ ...payload, role: nextRole });
+      localStorage.setItem(authStorageKey, JSON.stringify(response.data));
+      setAuthToken(response.data.token);
+      setProfile(normalizeProfile(response.data.user));
+      await loadRemoteData(nextRole);
+    } catch (_error) {
+      setAuthToken('');
+      setProfile({ ...roleProfiles[nextRole], name: payload.name, email: payload.email, password: '' });
+    }
+    window.history.pushState({}, '', pathForTab(nextRole, nextTab));
+    setRole(nextRole);
+    setActiveTab(nextTab);
+    setMobileSidebarOpen(false);
+    setSearchOpen(false);
+  }
+
   function logout() {
     localStorage.removeItem(authStorageKey);
     setAuthToken('');
@@ -390,6 +412,26 @@ export function useLearnifyApp() {
     setSelectedCourse(course);
     setActiveLesson(firstLesson);
     navigate('lesson-player');
+  }
+
+  function openCourseDetail(course: Course) {
+    setSelectedCourse(course);
+    navigate('course-detail');
+  }
+
+  function openAssignmentDetail(id: string) {
+    setSelectedAssignmentId(id);
+    navigate('assignment-detail');
+  }
+
+  function openCertificateDetail(id: string) {
+    setSelectedCertificateId(id);
+    navigate('certificate-detail');
+  }
+
+  function openQuizDetail(id: string) {
+    setSelectedQuizId(id);
+    navigate('quiz-detail');
   }
 
   function markLessonComplete() {
@@ -603,7 +645,12 @@ export function useLearnifyApp() {
 
   async function submitAssignment(payload: any) {
     const assignment = platform.assignments[0];
-    if (authToken && assignment?.id) await platformApi.createSubmission({ assignment: payload.assignment || assignment.id, content: payload.content }).then(() => loadRemoteData(role)).catch(() => null);
+    let attachmentUrl = payload.attachmentUrl || '';
+    if (authToken && payload.file instanceof File) {
+      const upload = await uploadApi.file(payload.file).catch(() => null);
+      attachmentUrl = upload?.data?.url || attachmentUrl;
+    }
+    if (authToken && assignment?.id) await platformApi.createSubmission({ assignment: payload.assignment || assignment.id, content: payload.content, attachmentUrl }).then(() => loadRemoteData(role)).catch(() => null);
     setPlatform((items) => ({
       ...items,
       submissions: [
@@ -686,6 +733,9 @@ export function useLearnifyApp() {
       selectedBuilderCourse,
       activeLesson,
       activeQuiz,
+      selectedAssignmentId,
+      selectedCertificateId,
+      selectedQuizId,
       answers,
       questionIndex,
       showCourseModal,
@@ -721,6 +771,10 @@ export function useLearnifyApp() {
       saveProfile,
       toggleEnrollment,
       openLesson,
+      openCourseDetail,
+      openAssignmentDetail,
+      openCertificateDetail,
+      openQuizDetail,
       markLessonComplete,
       saveCourse,
       openCreateCourseModal,
@@ -734,6 +788,7 @@ export function useLearnifyApp() {
       deleteCourse,
       manageCourseContent,
       login,
+      register,
       logout,
       startQuiz,
       submitQuiz,

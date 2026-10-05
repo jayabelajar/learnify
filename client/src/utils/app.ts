@@ -17,6 +17,10 @@ export function pathForTab(role: Role, tab: string) {
   if (tab === 'landing') return '/';
   if (tab.startsWith('login-')) return loginPathByRole[role];
   if (tab === 'lesson-player') return '/course-detail';
+  if (tab === 'course-detail') return `/${role}/courses/detail`;
+  if (tab === 'assignment-detail') return `/${role}/assignments/detail`;
+  if (tab === 'certificate-detail') return `/${role}/certificates/detail`;
+  if (tab === 'quiz-detail') return `/${role}/quizzes/detail`;
   if (tab === 'quiz-view') return '/quiz';
   const path = navForRole(role).find((item) => item.id === tab)?.path || '/dashboard';
   return `/${role}${path}`;

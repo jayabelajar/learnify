@@ -77,3 +77,11 @@ export const platformApi = {
   updateQuiz: (id, payload) => api.put(`/quizzes/${id}`, payload),
   deleteQuiz: (id) => api.delete(`/quizzes/${id}`)
 };
+
+export const uploadApi = {
+  file: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post('/uploads', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  }
+};

@@ -13,8 +13,12 @@ import { ProfilePage } from '../pages/profile/ProfilePage';
 import { LandingPage } from '../pages/public/LandingPage';
 import { PlatformResourcePage } from '../pages/platform/PlatformResourcePage';
 import { ExploreCourses } from '../pages/student/ExploreCourses';
+import { AssignmentDetail } from '../pages/student/AssignmentDetail';
+import { CertificateDetail } from '../pages/student/CertificateDetail';
+import { CourseDetail } from '../pages/student/CourseDetail';
 import { LessonPlayer } from '../pages/student/LessonPlayer';
 import { MyLearning } from '../pages/student/MyLearning';
+import { QuizDetail } from '../pages/student/QuizDetail';
 import { QuizResults } from '../pages/student/QuizResults';
 import { QuizView } from '../pages/student/QuizView';
 import { StudentDashboard } from '../pages/student/StudentDashboard';
@@ -25,19 +29,25 @@ type AppModel = ReturnType<typeof useLearnifyApp>;
 export function AppContent({ model }: { model: AppModel }) {
   const { state, actions } = model;
   const p = state.platform;
+  const selectedAssignment = p.assignments.find((item) => item.id === state.selectedAssignmentId) || p.assignments[0];
+  const selectedCertificate = p.certificates.find((item) => item.id === state.selectedCertificateId) || p.certificates[0];
+  const selectedQuiz = p.quizzes.find((item) => item.id === state.selectedQuizId) || p.quizzes[0];
 
   return (
     <>
       <main className="min-h-0 flex-1 overflow-y-auto">
         <div className={state.activeTab === 'landing' ? '' : 'mx-auto max-w-7xl space-y-6 p-4 md:p-6'}>
           {state.activeTab === 'landing' && <LandingPage courses={state.courses} onLogin={actions.goToLogin} />}
-          {state.activeTab.startsWith('login-') && <LoginPage role={state.role} onLogin={actions.login} onSwitch={actions.goToLogin} />}
+          {state.activeTab.startsWith('login-') && <LoginPage role={state.role} onLogin={actions.login} onRegister={actions.register} onSwitch={actions.goToLogin} />}
 
           {state.role === 'student' && state.activeTab === 'dashboard' && (
             <StudentDashboard kpis={state.studentKpis} courses={state.enrolledCourses} quizResults={state.quizResults} onExplore={() => actions.navigate('explore-courses')} onOpenLesson={actions.openLesson} />
           )}
           {state.role === 'student' && state.activeTab === 'explore-courses' && (
-            <ExploreCourses courses={state.filteredExploreCourses} search={state.courseSearch} category={state.category} level={state.level} onSearch={actions.setCourseSearch} onCategory={actions.setCategory} onLevel={actions.setLevel} onEnroll={actions.toggleEnrollment} onOpenLesson={actions.openLesson} />
+            <ExploreCourses courses={state.filteredExploreCourses} search={state.courseSearch} category={state.category} level={state.level} onSearch={actions.setCourseSearch} onCategory={actions.setCategory} onLevel={actions.setLevel} onEnroll={actions.toggleEnrollment} onOpenLesson={actions.openCourseDetail} />
+          )}
+          {state.role === 'student' && state.activeTab === 'course-detail' && (
+            <CourseDetail course={state.selectedCourse} onEnroll={actions.toggleEnrollment} onStart={actions.openLesson} onBack={() => actions.navigate('explore-courses')} />
           )}
           {state.role === 'student' && state.activeTab === 'my-learning' && (
             <MyLearning courses={state.filteredLearning} search={state.courseSearch} category={state.category} level={state.level} completion={state.completion} onSearch={actions.setCourseSearch} onCategory={actions.setCategory} onLevel={actions.setLevel} onCompletion={actions.setCompletion} onOpenLesson={actions.openLesson} onStartQuiz={actions.startQuiz} />
@@ -48,12 +58,26 @@ export function AppContent({ model }: { model: AppModel }) {
           {state.role === 'student' && state.activeTab === 'quiz-view' && state.activeQuiz && (
             <QuizView quiz={state.activeQuiz} answers={state.answers} index={state.questionIndex} onAnswer={(questionId, answer) => actions.setAnswers((items) => ({ ...items, [questionId]: answer }))} onIndex={actions.setQuestionIndex} onSubmit={actions.submitQuiz} />
           )}
-          {state.role === 'student' && state.activeTab === 'quiz-results' && <QuizResults results={state.quizResults} />}
+          {state.role === 'student' && state.activeTab === 'quiz-results' && (
+            <div className="space-y-6">
+              <QuizResults results={state.quizResults} />
+              <PlatformResourcePage title="Available Quizzes" description="Lihat detail quiz dan riwayat attempt sebelum mengerjakan assessment berikutnya." primaryAction="Refresh" headers={['Quiz', 'Course', 'Questions', 'Passing Score', 'Status']} rows={p.quizzes.map((item) => [item.title, item.courseTitle, item.questions, item.passingScore, item.status])} rowActions={[{ label: 'View Detail', onClick: (index) => actions.openQuizDetail(p.quizzes[index].id) }]} />
+            </div>
+          )}
+          {state.role === 'student' && state.activeTab === 'quiz-detail' && selectedQuiz && (
+            <QuizDetail quiz={selectedQuiz} results={state.quizResults.filter((item) => item.quizTitle === selectedQuiz.title || item.courseTitle === selectedQuiz.courseTitle)} onBack={() => actions.navigate('quiz-results')} />
+          )}
           {state.role === 'student' && state.activeTab === 'assignments' && (
-            <PlatformResourcePage title="Assignments" description="Submit tugas course, pantau deadline, dan lihat status penilaian dari instructor." primaryAction="Submit Assignment" headers={['Assignment', 'Course', 'Due Date', 'Status', 'Points']} rows={p.assignments.map((item) => [item.title, item.courseTitle, item.dueDate, item.status, item.points])} stats={[['Assignments', p.assignments.length], ['Published', p.assignments.filter((item) => item.status === 'published').length], ['Open', p.assignments.filter((item) => item.status !== 'closed').length]]} formFields={[{ name: 'content', label: 'Submission Link / Notes', type: 'textarea', placeholder: 'Paste GitHub link, Drive link, or answer notes' }]} onCreate={actions.submitAssignment} />
+            <PlatformResourcePage title="Assignments" description="Submit tugas course, pantau deadline, dan lihat status penilaian dari instructor." primaryAction="Submit Assignment" headers={['Assignment', 'Course', 'Due Date', 'Status', 'Points']} rows={p.assignments.map((item) => [item.title, item.courseTitle, item.dueDate, item.status, item.points])} stats={[['Assignments', p.assignments.length], ['Published', p.assignments.filter((item) => item.status === 'published').length], ['Open', p.assignments.filter((item) => item.status !== 'closed').length]]} rowActions={[{ label: 'View Detail', onClick: (index) => actions.openAssignmentDetail(p.assignments[index].id) }]} />
+          )}
+          {state.role === 'student' && state.activeTab === 'assignment-detail' && selectedAssignment && (
+            <AssignmentDetail assignment={selectedAssignment} submissions={p.submissions.filter((item) => item.assignmentTitle === selectedAssignment.title)} onSubmit={actions.submitAssignment} onBack={() => actions.navigate('assignments')} />
           )}
           {state.role === 'student' && state.activeTab === 'certificates' && (
-            <PlatformResourcePage title="Certificates" description="Kumpulan sertifikat course yang sudah selesai dan siap diverifikasi." primaryAction="Verify Certificate" headers={['Certificate ID', 'Student', 'Course', 'Issued At', 'Status']} rows={p.certificates.map((item) => [item.certificateId, item.studentName, item.courseTitle, item.issuedAt, item.status])} />
+            <PlatformResourcePage title="Certificates" description="Kumpulan sertifikat course yang sudah selesai dan siap diverifikasi." primaryAction="Verify Certificate" headers={['Certificate ID', 'Student', 'Course', 'Issued At', 'Status']} rows={p.certificates.map((item) => [item.certificateId, item.studentName, item.courseTitle, item.issuedAt, item.status])} rowActions={[{ label: 'Verify', onClick: (index) => actions.openCertificateDetail(p.certificates[index].id) }]} />
+          )}
+          {state.role === 'student' && state.activeTab === 'certificate-detail' && selectedCertificate && (
+            <CertificateDetail certificate={selectedCertificate} onBack={() => actions.navigate('certificates')} />
           )}
           {state.role === 'student' && state.activeTab === 'calendar' && (
             <PlatformResourcePage title="Calendar" description="Jadwal assignment, quiz, dan live session agar progres belajar tetap rapi." primaryAction="Add Reminder" headers={['Title', 'Date', 'Type', 'Status']} rows={p.calendar.map((item) => [item.title, item.date, item.type, item.status])} />
